@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Scheduler Pro</title>
+    <title>Stream Scheduler Pro v3</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Chargement des Polices -->
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Oswald:wght@400;700&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -13,20 +12,29 @@
         
         <aside class="sidebar">
             <header class="sidebar-header">
-                <h1>Scheduler <span>PRO</span></h1>
+                <h1>Scheduler <span>V3</span></h1>
             </header>
 
             <section class="control-group">
                 <h3>1. Données du Planning</h3>
-                <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch">
-                <button id="btnFetchTwitch" class="btn btn-twitch">1. Connexion Twitch</button>
-                <button id="btnOpenEditor" class="btn btn-primary" style="margin-top: 10px;">2. ✏️ Éditeur Manuel</button>
+                <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch (ex: Ninja)">
+                <button id="btnFetchTwitch" class="btn btn-twitch">🔗 1. Synchro Twitch</button>
+                <button id="btnOpenEditor" class="btn btn-primary" style="margin-top: 10px;">✏️ 2. Éditeur de Semaine</button>
+            </section>
+
+            <hr class="divider">
+
+            <!-- NOUVEAU : Réseaux Sociaux -->
+            <section class="control-group">
+                <h3>2. Réseaux Sociaux (Pied de page)</h3>
+                <input type="text" id="socialTwitter" class="input-text" placeholder="Twitter / X (ex: @MonPseudo)">
+                <input type="text" id="socialTiktok" class="input-text" placeholder="TikTok ou YouTube">
             </section>
 
             <hr class="divider">
 
             <section class="control-group">
-                <h3>2. Design & Layout</h3>
+                <h3>3. Design & Layout</h3>
                 <label class="label-small">Style Visuel</label>
                 <select id="themeStyle" class="input-text select-box">
                     <option value="classic">Classique (Cartes Verre)</option>
@@ -36,8 +44,8 @@
 
                 <label class="label-small">Orientation</label>
                 <div class="toggle-group" style="margin-bottom:10px;">
-                    <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage</button>
-                    <button id="btnFormatPortrait" class="btn btn-toggle">Portrait</button>
+                    <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage (16:9)</button>
+                    <button id="btnFormatPortrait" class="btn btn-toggle">Portrait (Vertical)</button>
                 </div>
 
                 <label class="label-small">Police d'écriture</label>
@@ -53,18 +61,18 @@
             <hr class="divider">
 
             <section class="control-group">
-                <h3>3. Couleurs & Fond</h3>
+                <h3>4. Couleurs & Fond</h3>
                 <div class="color-picker-row">
-                    <label>Accentuation</label>
+                    <label>Couleur d'accent</label>
                     <input type="color" id="colorAccent" value="#9146FF">
                 </div>
                 <div class="color-picker-row">
-                    <label>Texte</label>
+                    <label>Couleur du texte</label>
                     <input type="color" id="colorText" value="#ffffff">
                 </div>
                 <div class="bg-upload-row">
                     <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
-                    <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">🖼️ Fond d'écran</button>
+                    <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">🖼️ Ajouter un fond</button>
                     <button id="btnClearBg" class="btn btn-danger-icon" title="Enlever le fond">✖</button>
                 </div>
             </section>
@@ -72,7 +80,7 @@
             <hr class="divider">
 
             <section class="control-group">
-                <h3>4. Sauvegarde Projet</h3>
+                <h3>5. Projet</h3>
                 <div class="split-buttons">
                     <button id="btnExportConfig" class="btn btn-secondary">💾 Exporter</button>
                     <input type="file" id="importConfig" accept=".json" style="display: none;">
@@ -91,18 +99,18 @@
         </main>
     </div>
 
-    <!-- GRAND MODAL: ÉDITEUR DE SEMAINE MANUEL -->
+    <!-- NOUVEAU MODAL ÉDITEUR (Supporte plusieurs lives par jour) -->
     <div id="weekEditorModal" class="modal hidden">
         <div class="modal-content large-modal">
-            <h2>Éditeur de Semaine</h2>
-            <p class="hint" style="margin-bottom: 20px;">Modifiez votre semaine manuellement. Pour chercher une jaquette, assurez-vous d'avoir cliqué sur "Connexion Twitch" d'abord.</p>
+            <h2>Éditeur de Semaine (Multi-Lives)</h2>
+            <p class="hint" style="margin-bottom: 20px;">Ajoutez plusieurs streams pour un même jour, choisissez vos horaires exacts et recherchez les jaquettes.</p>
             
             <div id="daysList" class="days-list">
-                <!-- Les 7 jours seront générés ici en JavaScript -->
+                <!-- Les jours seront injectés ici -->
             </div>
 
             <div class="modal-actions">
-                <button id="btnSaveWeek" class="btn btn-success">Sauvegarder et Appliquer</button>
+                <button id="btnSaveWeek" class="btn btn-success">Valider la semaine</button>
                 <button id="btnCloseWeek" class="btn btn-secondary">Annuler</button>
             </div>
         </div>
