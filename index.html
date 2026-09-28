@@ -5,51 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream Scheduler Pro</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Police moderne -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Chargement des Polices -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Oswald:wght@400;700&family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         
-        <!-- BARRE LATÉRALE DE CONTRÔLE (Gauche) -->
         <aside class="sidebar">
             <header class="sidebar-header">
-                <h1>Scheduler</h1>
-                <span class="badge">PRO</span>
+                <h1>Scheduler <span>PRO</span></h1>
             </header>
 
             <section class="control-group">
-                <h3>1. Source des données</h3>
-                <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch (Optionnel)">
-                <button id="btnFetchTwitch" class="btn btn-primary">Synchroniser Twitch</button>
-                <p class="hint">Astuce : Cliquez sur un jour sur l'image pour modifier le texte manuellement.</p>
+                <h3>1. Données du Planning</h3>
+                <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch">
+                <button id="btnFetchTwitch" class="btn btn-twitch">1. Connexion Twitch</button>
+                <button id="btnOpenEditor" class="btn btn-primary" style="margin-top: 10px;">2. ✏️ Éditeur Manuel</button>
             </section>
 
             <hr class="divider">
 
             <section class="control-group">
-                <h3>2. Format</h3>
-                <div class="toggle-group">
-                    <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage (16:9)</button>
-                    <button id="btnFormatPortrait" class="btn btn-toggle">Portrait (9:16)</button>
+                <h3>2. Design & Layout</h3>
+                <label class="label-small">Style Visuel</label>
+                <select id="themeStyle" class="input-text select-box">
+                    <option value="classic">Classique (Cartes Verre)</option>
+                    <option value="minimal">Minimaliste (Épuré)</option>
+                    <option value="neon">Néon (Gaming Glow)</option>
+                </select>
+
+                <label class="label-small">Orientation</label>
+                <div class="toggle-group" style="margin-bottom:10px;">
+                    <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage</button>
+                    <button id="btnFormatPortrait" class="btn btn-toggle">Portrait</button>
                 </div>
+
+                <label class="label-small">Police d'écriture</label>
+                <select id="fontFamily" class="input-text select-box">
+                    <option value="Inter">Inter (Moderne)</option>
+                    <option value="Montserrat">Montserrat (Élégant)</option>
+                    <option value="Poppins">Poppins (Rond)</option>
+                    <option value="Bebas Neue">Bebas Neue (Impact)</option>
+                    <option value="Oswald">Oswald (Condensé)</option>
+                </select>
             </section>
 
             <hr class="divider">
 
             <section class="control-group">
-                <h3>3. Apparence</h3>
+                <h3>3. Couleurs & Fond</h3>
                 <div class="color-picker-row">
-                    <label>Couleur principale</label>
+                    <label>Accentuation</label>
                     <input type="color" id="colorAccent" value="#9146FF">
                 </div>
                 <div class="color-picker-row">
-                    <label>Couleur du texte</label>
+                    <label>Texte</label>
                     <input type="color" id="colorText" value="#ffffff">
                 </div>
                 <div class="bg-upload-row">
                     <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
-                    <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">Fond d'écran</button>
+                    <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">🖼️ Fond d'écran</button>
                     <button id="btnClearBg" class="btn btn-danger-icon" title="Enlever le fond">✖</button>
                 </div>
             </section>
@@ -57,59 +72,38 @@
             <hr class="divider">
 
             <section class="control-group">
-                <h3>4. Projet</h3>
+                <h3>4. Sauvegarde Projet</h3>
                 <div class="split-buttons">
-                    <button id="btnExportConfig" class="btn btn-secondary">Sauvegarder</button>
+                    <button id="btnExportConfig" class="btn btn-secondary">💾 Exporter</button>
                     <input type="file" id="importConfig" accept=".json" style="display: none;">
-                    <button id="btnImportConfig" class="btn btn-secondary" onclick="document.getElementById('importConfig').click()">Charger</button>
+                    <button id="btnImportConfig" class="btn btn-secondary" onclick="document.getElementById('importConfig').click()">📂 Importer</button>
                 </div>
             </section>
         </aside>
 
-        <!-- ZONE PRINCIPALE (Droite) -->
         <main class="preview-area">
-            
-            <!-- Zone scrollable contenant le Canvas -->
             <div class="canvas-wrapper">
                 <canvas id="scheduleCanvas" width="1920" height="1080"></canvas>
             </div>
-
-            <!-- Barre d'action basse (Fixe) -->
             <div class="action-bar">
-                <button id="btnDownloadImage" class="btn btn-success">
-                    Télécharger l'image HD
-                </button>
+                <button id="btnDownloadImage" class="btn btn-success">📥 Télécharger l'image HD</button>
             </div>
-            
         </main>
     </div>
 
-    <!-- MODAL D'ÉDITION MANUELLE (En dehors du flux normal) -->
-    <div id="editModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="modalDayTitle">Modifier le jour</h2>
+    <!-- GRAND MODAL: ÉDITEUR DE SEMAINE MANUEL -->
+    <div id="weekEditorModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <h2>Éditeur de Semaine</h2>
+            <p class="hint" style="margin-bottom: 20px;">Modifiez votre semaine manuellement. Pour chercher une jaquette, assurez-vous d'avoir cliqué sur "Connexion Twitch" d'abord.</p>
             
-            <label>Statut</label>
-            <select id="modalStatus" class="input-text select-box">
-                <option value="LIVE">Live</option>
-                <option value="OFF">OFF (Repos)</option>
-                <option value="CANCEL">Annulé</option>
-            </select>
-
-            <div id="liveFields">
-                <label>Heures (ex: 20:00 - 23:00)</label>
-                <input type="text" id="modalTime" class="input-text">
-                
-                <label>Catégorie / Jeu</label>
-                <input type="text" id="modalCategory" class="input-text">
-                
-                <label>Titre du Stream</label>
-                <input type="text" id="modalTitle" class="input-text">
+            <div id="daysList" class="days-list">
+                <!-- Les 7 jours seront générés ici en JavaScript -->
             </div>
 
             <div class="modal-actions">
-                <button id="btnSaveModal" class="btn btn-primary">Valider</button>
-                <button id="btnCloseModal" class="btn btn-secondary">Annuler</button>
+                <button id="btnSaveWeek" class="btn btn-success">Sauvegarder et Appliquer</button>
+                <button id="btnCloseWeek" class="btn btn-secondary">Annuler</button>
             </div>
         </div>
     </div>

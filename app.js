@@ -1,150 +1,103 @@
 // ============================================================================
-// 1. ÉTAT GLOBAL ET GESTION DU STOCKAGE
+// 1. ÉTAT GLOBAL
 // ============================================================================
-
 const defaultState = {
     theme: {
         backgroundColor: "#09090b",
         backgroundImageUrl: null,
         textColor: "#ffffff",
         accentColor: "#9146FF",
-        fontFamily: "Inter"
+        fontFamily: "Inter",
+        style: "classic" // "classic", "minimal", "neon"
     },
-    layout: {
-        format: "landscape" // "landscape" (16:9) ou "portrait" (9:16)
-    },
-    twitchData: {
-        username: "",
-        schedule: [] // Sera rempli par l'API Twitch ou modifié manuellement
-    }
+    layout: { format: "landscape" },
+    twitchData: { username: "", schedule: [] },
+    twitchAuthToken: null // Requis pour chercher des images manuellement
 };
 
 let appState = defaultState;
-const savedLocalState = localStorage.getItem('schedulerProState');
-
+const savedLocalState = localStorage.getItem('schedulerProV2');
 if (savedLocalState) {
-    try {
-        appState = { ...defaultState, ...JSON.parse(savedLocalState) };
-    } catch (e) {
-        console.error("Erreur de lecture localStorage", e);
-    }
+    try { appState = { ...defaultState, ...JSON.parse(savedLocalState) }; } catch (e) {}
 }
 
 function saveLocal() {
-    localStorage.setItem('schedulerProState', JSON.stringify(appState));
+    localStorage.setItem('schedulerProV2', JSON.stringify(appState));
     loadBackgroundImageAndRender();
 }
 
-
 // ============================================================================
-// 2. INITIALISATION DE L'INTERFACE UTILISATEUR (Boutons, Couleurs)
+// 2. INITIALISATION UI & LISTENERS
 // ============================================================================
-
 window.addEventListener('DOMContentLoaded', () => {
-    // Restaurer le pseudo
-    if (appState.twitchData.username) {
-        document.getElementById('twitchUsername').value = appState.twitchData.username;
-    }
-    
-    // Restaurer les couleurs
+    if (appState.twitchData.username) document.getElementById('twitchUsername').value = appState.twitchData.username;
     document.getElementById('colorAccent').value = appState.theme.accentColor;
     document.getElementById('colorText').value = appState.theme.textColor;
-    
-    // Restaurer les boutons de format
+    document.getElementById('fontFamily').value = appState.theme.fontFamily;
+    document.getElementById('themeStyle').value = appState.theme.style;
     updateFormatButtons(appState.layout.format);
 });
 
-// Écouteurs pour les couleurs
-document.getElementById('colorAccent').addEventListener('input', (e) => {
-    appState.theme.accentColor = e.target.value;
-    saveLocal();
-});
-document.getElementById('colorText').addEventListener('input', (e) => {
-    appState.theme.textColor = e.target.value;
-    saveLocal();
-});
+// Apparence
+document.getElementById('colorAccent').addEventListener('input', (e) => { appState.theme.accentColor = e.target.value; saveLocal(); });
+document.getElementById('colorText').addEventListener('input', (e) => { appState.theme.textColor = e.target.value; saveLocal(); });
+document.getElementById('fontFamily').addEventListener('change', (e) => { appState.theme.fontFamily = e.target.value; saveLocal(); });
+document.getElementById('themeStyle').addEventListener('change', (e) => { appState.theme.style = e.target.value; saveLocal(); });
 
-// Écouteurs pour le format (Paysage / Portrait)
-document.getElementById('btnFormatLandscape').addEventListener('click', () => {
-    appState.layout.format = "landscape";
-    updateFormatButtons("landscape");
-    saveLocal();
-});
-document.getElementById('btnFormatPortrait').addEventListener('click', () => {
-    appState.layout.format = "portrait";
-    updateFormatButtons("portrait");
-    saveLocal();
-});
-
-function updateFormatButtons(activeFormat) {
-    const btnL = document.getElementById('btnFormatLandscape');
-    const btnP = document.getElementById('btnFormatPortrait');
-    if (activeFormat === "landscape") {
-        btnL.classList.add("active");
-        btnP.classList.remove("active");
-    } else {
-        btnP.classList.add("active");
-        btnL.classList.remove("active");
-    }
+// Format
+document.getElementById('btnFormatLandscape').addEventListener('click', () => { appState.layout.format = "landscape"; updateFormatButtons("landscape"); saveLocal(); });
+document.getElementById('btnFormatPortrait').addEventListener('click', () => { appState.layout.format = "portrait"; updateFormatButtons("portrait"); saveLocal(); });
+function updateFormatButtons(active) {
+    document.getElementById('btnFormatLandscape').classList.toggle("active", active === "landscape");
+    document.getElementById('btnFormatPortrait').classList.toggle("active", active === "portrait");
 }
 
-
-// ============================================================================
-// 3. EXPORT / IMPORT JSON DU PROJET
-// ============================================================================
-
+// Export/Import JSON
 document.getElementById('btnExportConfig').addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-    const downloadLink = document.createElement('a');
-    downloadLink.setAttribute("href", dataStr);
-    downloadLink.setAttribute("download", `scheduler_project.json`);
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    downloadLink.remove();
+    const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+    const link = document.createElement('a'); link.href = data; link.download = `planning.json`;
+    document.body.appendChild(link); link.click(); link.remove();
 });
-
-document.getElementById('importConfig').addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+document.getElementById('importConfig').addEventListener('change', (e) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            appState = { ...defaultState, ...JSON.parse(e.target.result) };
-            // Maj UI
-            document.getElementById('colorAccent').value = appState.theme.accentColor;
-            document.getElementById('colorText').value = appState.theme.textColor;
-            updateFormatButtons(appState.layout.format);
-            if (appState.twitchData.username) document.getElementById('twitchUsername').value = appState.twitchData.username;
-            
-            saveLocal();
-        } catch (error) { alert("Fichier JSON invalide."); }
+    reader.onload = (ev) => {
+        appState = { ...defaultState, ...JSON.parse(ev.target.result) };
+        window.location.reload(); // Recharge la page pour tout appliquer
     };
-    reader.readAsText(file);
+    if (e.target.files[0]) reader.readAsText(e.target.files[0]);
 });
 
+// Fond d'écran
+let bgImageObj = null;
+const imageCache = {};
+document.getElementById('bgUploader').addEventListener('change', (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => { appState.theme.backgroundImageUrl = ev.target.result; saveLocal(); };
+    if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+});
+document.getElementById('btnClearBg').addEventListener('click', () => { appState.theme.backgroundImageUrl = null; saveLocal(); });
+
 
 // ============================================================================
-// 4. API TWITCH (Acquisition automatique)
+// 3. API TWITCH (Connexion sans Scope & Sync Auto)
 // ============================================================================
-
-// ⚠️ VOS IDENTIFIANTS ICI ⚠️
 const TWITCH_CLIENT_ID = 'xc95ll8bm31mma3bhumcw5ny1zlwti'; 
 const REDIRECT_URI = 'https://MaqzBenz.github.io/VOTRE_DEPOT/'; 
-const SCOPES = 'channel:read:schedule';
 
 document.getElementById('btnFetchTwitch').addEventListener('click', () => {
-    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+    // ERREUR CORRIGÉE ICI : Pas de paramètre "scope" pour éviter l'erreur 400
+    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token`;
     window.location.href = authUrl;
 });
 
 window.addEventListener('DOMContentLoaded', () => {
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
-        const params = new URLSearchParams(hash.substring(1)); 
-        const accessToken = params.get('access_token');
-        if (accessToken) {
+        const token = new URLSearchParams(hash.substring(1)).get('access_token');
+        if (token) {
             window.history.replaceState({}, document.title, window.location.pathname);
-            fetchTwitchSchedule(accessToken);
+            appState.twitchAuthToken = token; // Stocké pour les recherches d'images
+            fetchTwitchSchedule(token);
         }
     }
 });
@@ -153,18 +106,14 @@ async function fetchTwitchSchedule(token) {
     try {
         const userRes = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID } });
         const userData = await userRes.json();
-        if (!userData.data) throw new Error("Utilisateur introuvable.");
-
         const userId = userData.data[0].id;
-        const displayName = userData.data[0].display_name;
-        
-        appState.twitchData.username = displayName;
-        document.getElementById('twitchUsername').value = displayName;
+        appState.twitchData.username = userData.data[0].display_name;
+        document.getElementById('twitchUsername').value = appState.twitchData.username;
 
         const schedRes = await fetch(`https://api.twitch.tv/helix/schedule?broadcaster_id=${userId}`, { headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID } });
         const schedData = await schedRes.json();
-        
         let streams = schedData.data && schedData.data.segments ? schedData.data.segments : [];
+        
         let categoryIds = [];
         streams.forEach(s => { if (s.category && s.category.id) categoryIds.push(s.category.id); });
 
@@ -172,53 +121,124 @@ async function fetchTwitchSchedule(token) {
         if (categoryIds.length > 0) {
             const gamesRes = await fetch(`https://api.twitch.tv/helix/games?id=${categoryIds.join('&id=')}`, { headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID } });
             const gamesData = await gamesRes.json();
-            if (gamesData.data) {
-                gamesData.data.forEach(g => { boxArts[g.id] = g.box_art_url.replace('{width}', '188').replace('{height}', '250'); });
-            }
+            if (gamesData.data) gamesData.data.forEach(g => { boxArts[g.id] = g.box_art_url.replace('{width}', '188').replace('{height}', '250'); });
         }
 
-        appState.twitchData.schedule = streams.map(s => ({
-            id: s.id,
-            title: s.title,
-            startTime: s.start_time,
-            isCanceled: s.is_canceled,
-            isManual: false, // Flag pour savoir si l'user a forcé une modif
+        // On n'écrase pas les entrées créées manuellement par l'utilisateur
+        let newSchedule = streams.map(s => ({
+            manualDateString: s.start_time.split('T')[0],
+            status: s.is_canceled ? "CANCEL" : "LIVE",
+            startTime: formatTimeStrict(s.start_time),
             categoryName: s.category ? s.category.name : "Just Chatting",
-            categoryId: s.category ? s.category.id : null,
+            title: s.title,
             boxArtUrl: (s.category && boxArts[s.category.id]) ? boxArts[s.category.id] : null
         }));
-        
+
+        appState.twitchData.schedule = newSchedule;
         saveLocal();
-    } catch (error) {
-        console.error(error);
-        alert("Erreur de connexion Twitch.");
-    }
+        alert("Synchronisation réussie !");
+    } catch (e) { console.error(e); alert("Erreur Twitch. Réessayez."); }
 }
 
 
 // ============================================================================
-// 5. GESTION DU FOND (Background) ET PRECHARGEMENT IMAGE
+// 4. ÉDITEUR MANUEL DE SEMAINE & RECHERCHE D'IMAGE
 // ============================================================================
+const daysOfWeek = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
 
-let bgImageObj = null; 
-const imageCache = {};
+document.getElementById('btnOpenEditor').addEventListener('click', () => {
+    const list = document.getElementById('daysList');
+    list.innerHTML = '';
+    
+    const startOfWeek = getMondayOfCurrentWeek();
 
-document.getElementById('btnUploadBg').addEventListener('click', () => document.getElementById('bgUploader').click());
-document.getElementById('bgUploader').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        appState.theme.backgroundImageUrl = ev.target.result;
-        saveLocal(); 
-    };
-    reader.readAsDataURL(file);
+    for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(startOfWeek.getDate() + i);
+        const dateKey = currentDate.toISOString().split('T')[0];
+        
+        // Chercher si on a des données pour ce jour
+        const s = appState.twitchData.schedule.find(d => d.manualDateString === dateKey) || {};
+
+        const html = `
+            <div class="day-row" data-date="${dateKey}">
+                <h4>${daysOfWeek[i]}</h4>
+                <select class="input-text status-sel">
+                    <option value="LIVE" ${s.status === 'LIVE' ? 'selected' : ''}>LIVE</option>
+                    <option value="OFF" ${(!s.status || s.status === 'OFF') ? 'selected' : ''}>OFF</option>
+                    <option value="CANCEL" ${s.status === 'CANCEL' ? 'selected' : ''}>ANNULÉ</option>
+                </select>
+                <input type="text" class="input-text time-inp" placeholder="Heure (20:00)" value="${s.startTime || ''}">
+                <input type="text" class="input-text cat-inp" placeholder="Nom du Jeu" value="${s.categoryName || ''}">
+                <button class="btn-search" onclick="searchGameForRow(this, '${dateKey}')">Chercher Image</button>
+                <input type="text" class="input-text title-inp" placeholder="Titre du live" value="${s.title || ''}">
+                <input type="hidden" class="boxart-inp" value="${s.boxArtUrl || ''}">
+            </div>
+        `;
+        list.innerHTML += html;
+    }
+    document.getElementById('weekEditorModal').classList.remove('hidden');
 });
 
-document.getElementById('btnClearBg').addEventListener('click', () => {
-    appState.theme.backgroundImageUrl = null;
+document.getElementById('btnCloseWeek').addEventListener('click', () => document.getElementById('weekEditorModal').classList.add('hidden'));
+
+// Sauvegarder l'édition
+document.getElementById('btnSaveWeek').addEventListener('click', () => {
+    const rows = document.querySelectorAll('.day-row');
+    appState.twitchData.schedule = [];
+
+    rows.forEach(row => {
+        const status = row.querySelector('.status-sel').value;
+        if (status !== 'OFF') {
+            appState.twitchData.schedule.push({
+                manualDateString: row.getAttribute('data-date'),
+                status: status,
+                startTime: row.querySelector('.time-inp').value,
+                categoryName: row.querySelector('.cat-inp').value,
+                title: row.querySelector('.title-inp').value,
+                boxArtUrl: row.querySelector('.boxart-inp').value
+            });
+        }
+    });
     saveLocal();
+    document.getElementById('weekEditorModal').classList.add('hidden');
 });
+
+// Rechercher Image Twitch dans l'éditeur
+window.searchGameForRow = async function(btn, dateKey) {
+    if (!appState.twitchAuthToken) {
+        alert("Vous devez d'abord vous connecter à Twitch (Bouton 1) pour rechercher des images.");
+        return;
+    }
+    const row = btn.parentElement;
+    const query = row.querySelector('.cat-inp').value;
+    if (!query) return;
+
+    btn.innerText = "⏳...";
+    try {
+        const res = await fetch(`https://api.twitch.tv/helix/search/categories?query=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${appState.twitchAuthToken}`, 'Client-Id': TWITCH_CLIENT_ID }
+        });
+        const data = await res.json();
+        if (data.data && data.data.length > 0) {
+            // Prend le meilleur résultat
+            const cover = data.data[0].box_art_url.replace('{width}', '188').replace('{height}', '250');
+            row.querySelector('.boxart-inp').value = cover;
+            btn.innerText = "✔️ Trouvé";
+            btn.style.background = "#10b981";
+        } else {
+            btn.innerText = "❌ Introuvable";
+            btn.style.background = "#ef4444";
+        }
+    } catch (e) { btn.innerText = "Erreur"; }
+};
+
+
+// ============================================================================
+// 5. MOTEUR DE RENDU MULTI-DESIGNS (Canvas)
+// ============================================================================
+const canvas = document.getElementById('scheduleCanvas');
+const ctx = canvas.getContext('2d');
 
 function loadBackgroundImageAndRender() {
     if (appState.theme.backgroundImageUrl) {
@@ -226,420 +246,171 @@ function loadBackgroundImageAndRender() {
         bgImageObj.onload = () => preloadImagesAndRender();
         bgImageObj.onerror = () => { bgImageObj = null; preloadImagesAndRender(); };
         bgImageObj.src = appState.theme.backgroundImageUrl;
-    } else {
-        bgImageObj = null;
-        preloadImagesAndRender();
-    }
+    } else { bgImageObj = null; preloadImagesAndRender(); }
 }
 
 function preloadImagesAndRender() {
-    const sched = appState.twitchData.schedule || [];
     let toLoad = 0, loaded = 0;
     const check = () => { if (loaded === toLoad) renderCanvas(); };
-
-    sched.forEach(s => {
-        if (s.boxArtUrl && !imageCache[s.boxArtUrl]) { // Indexé par URL maintenant (car modif manuelle possible)
-            toLoad++;
-            const img = new Image();
-            img.crossOrigin = "Anonymous"; 
-            img.onload = () => { loaded++; check(); };
-            img.onerror = () => { loaded++; check(); };
-            img.src = s.boxArtUrl;
-            imageCache[s.boxArtUrl] = img; 
+    (appState.twitchData.schedule || []).forEach(s => {
+        if (s.boxArtUrl && !imageCache[s.boxArtUrl]) {
+            toLoad++; const img = new Image(); img.crossOrigin = "Anonymous";
+            img.onload = () => { loaded++; check(); }; img.onerror = () => { loaded++; check(); };
+            img.src = s.boxArtUrl; imageCache[s.boxArtUrl] = img; 
         }
     });
     if (toLoad === 0) renderCanvas();
 }
 
-
-// ============================================================================
-// 6. MOTEUR DE RENDU CANVAS ET LOGIQUE D'ORIENTATION
-// ============================================================================
-
-const canvas = document.getElementById('scheduleCanvas');
-const ctx = canvas.getContext('2d');
-
-// --- Tableau qui stocke les zones cliquables (Hitboxes) ---
-let dayHitboxes = []; 
-
-function formatTime(dateString) {
-    if (!dateString) return "";
-    // Gestion simplifiée pour les entrées manuelles (ex: "20h00")
-    if (!dateString.includes('T')) return dateString; 
-    return new Date(dateString).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-}
-
-function getMondayOfCurrentWeek() {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0); 
-    return monday;
-}
-
 function renderCanvas() {
-    // 1. Adapter la taille du canvas selon le format
-    if (appState.layout.format === "portrait") {
-        canvas.width = 1080;
-        canvas.height = 1920;
-    } else {
-        canvas.width = 1920;
-        canvas.height = 1080;
-    }
-
-    // Réinitialiser les hitboxes pour le clic
-    dayHitboxes = [];
+    const isLand = (appState.layout.format === "landscape");
+    canvas.width = isLand ? 1920 : 1080;
+    canvas.height = isLand ? 1080 : 1920;
 
     // FOND
     ctx.fillStyle = appState.theme.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (bgImageObj) {
         drawImageProp(ctx, bgImageObj, 0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
-    // TITRE PRINCIPAL
+    ctx.shadowBlur = 0; // Reset
+    const style = appState.theme.style;
+    
+    // TITRE
     ctx.fillStyle = appState.theme.textColor;
-    ctx.font = `bold 60px ${appState.theme.fontFamily}`;
+    ctx.font = `900 70px "${appState.theme.fontFamily}"`;
     ctx.textAlign = "center";
-    ctx.fillText("PLANNING DE LA SEMAINE", canvas.width / 2, 100);
+    if (style === "neon") { ctx.shadowBlur = 20; ctx.shadowColor = appState.theme.accentColor; }
+    ctx.fillText("PLANNING DE LA SEMAINE", canvas.width / 2, 120);
+    ctx.shadowBlur = 0; // Reset
 
-    const days = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
     const startOfWeek = getMondayOfCurrentWeek();
-    const schedule = appState.twitchData.schedule || [];
+    let cardW = isLand ? 240 : 850;
+    let cardH = isLand ? 700 : 200;
+    let gap = isLand ? 20 : 25;
+    let startX = isLand ? (canvas.width - (cardW*7 + gap*6))/2 : (canvas.width - cardW)/2;
+    let startY = 220;
 
-    // PARAMÈTRES DE GRILLE DYNAMIQUES
-    let cardWidth, cardHeight, startX, startY, gapX, gapY;
+    for (let i = 0; i < 7; i++) {
+        let x = isLand ? startX + (i * (cardW + gap)) : startX;
+        let y = isLand ? startY : startY + (i * (cardH + gap));
+        
+        let d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i);
+        let dateKey = d.toISOString().split('T')[0];
+        let stream = appState.twitchData.schedule.find(s => s.manualDateString === dateKey);
 
-    if (appState.layout.format === "landscape") {
-        cardWidth = 240;
-        cardHeight = 700;
-        gapX = 20;
-        gapY = 0;
-        startX = (canvas.width - ((cardWidth * 7) + (gapX * 6))) / 2;
-        startY = 200;
-    } else {
-        // Portrait (1 colonne, 7 lignes)
-        cardWidth = 800;
-        cardHeight = 220; // Plus écrasé en portrait
-        gapX = 0;
-        gapY = 20;
-        startX = (canvas.width - cardWidth) / 2;
-        startY = 200;
-    }
-
-    // BOUCLE DE DESSIN DES CARTES
-    days.forEach((dayName, index) => {
-        // Calcul position
-        const x = appState.layout.format === "landscape" ? startX + (index * (cardWidth + gapX)) : startX;
-        const y = appState.layout.format === "landscape" ? startY : startY + (index * (cardHeight + gapY));
-
-        // Date exacte du jour
-        const currentDate = new Date(startOfWeek);
-        currentDate.setDate(startOfWeek.getDate() + index);
-        const dayKeyStr = currentDate.toISOString().split('T')[0]; // "2026-09-28"
-
-        // Chercher les données du stream pour ce jour (API ou Manuel)
-        let streamForDay = schedule.find(s => {
-            if (s.manualDateString) return s.manualDateString === dayKeyStr; // Si forcé manuellement
-            if (s.startTime && s.startTime.includes('T')) {
-                const sDate = new Date(s.startTime);
-                return sDate.getDate() === currentDate.getDate() && sDate.getMonth() === currentDate.getMonth();
-            }
-            return false;
-        });
-
-        // ------------------
-        // ENREGISTREMENT HITBOX POUR LE CLIC
-        dayHitboxes.push({
-            dayIndex: index,
-            dayName: dayName,
-            dateKey: dayKeyStr, // Identifiant unique pour sauvegarder la modif manuelle
-            rect: { x: x, y: y, w: cardWidth, h: cardHeight },
-            currentData: streamForDay
-        });
-        // ------------------
-
-        // DESSIN FOND CARTE (Glassmorphism)
-        ctx.save();
-        if (bgImageObj) ctx.filter = "blur(12px)";
-        ctx.fillStyle = "rgba(24, 24, 27, 0.7)"; 
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(x, y, cardWidth, cardHeight, 15);
-        ctx.fill();
-        ctx.stroke(); 
-        ctx.restore();
-
-        // TEXTE INTÉRIEUR (Logique différente entre Paysage/Vertical)
-        ctx.fillStyle = appState.theme.textColor;
-        ctx.textAlign = appState.layout.format === "landscape" ? "center" : "left";
-
-        if (appState.layout.format === "landscape") {
-            // --- MODE PAYSAGE ---
-            // Header Coloré
+        // --- DESSIN SELON LE TEMPLATE ---
+        if (style === "classic") {
+            // VERRE DÉPOLI
+            ctx.save();
+            if (bgImageObj) ctx.filter = "blur(12px)";
+            ctx.fillStyle = "rgba(24, 24, 27, 0.7)";
+            ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 15); ctx.fill(); ctx.stroke();
+            ctx.restore();
+            // Header Couleurs
             ctx.fillStyle = appState.theme.accentColor;
-            ctx.beginPath();
-            ctx.roundRect(x, y, cardWidth, 80, [15, 15, 0, 0]);
+            ctx.beginPath(); 
+            if(isLand) ctx.roundRect(x, y, cardW, 80, [15,15,0,0]);
+            else ctx.roundRect(x, y, 15, cardH, [15,0,0,15]);
             ctx.fill();
+        } 
+        else if (style === "minimal") {
+            // LIGNES ÉPURÉES (Pas de fond de carte)
+            ctx.strokeStyle = appState.theme.accentColor; ctx.lineWidth = 3;
+            ctx.beginPath();
+            if (isLand) { ctx.moveTo(x, y); ctx.lineTo(x+cardW, y); } // Ligne en haut
+            else { ctx.moveTo(x, y+cardH); ctx.lineTo(x+cardW, y+cardH); } // Ligne en bas
+            ctx.stroke();
+        }
+        else if (style === "neon") {
+            // GLOW EFFECTS
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 15; ctx.shadowColor = appState.theme.accentColor;
+            ctx.strokeStyle = appState.theme.accentColor; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
 
-            // Date
-            ctx.fillStyle = "#ffffff";
-            ctx.font = `bold 30px ${appState.theme.fontFamily}`;
-            ctx.fillText(`${dayName} ${currentDate.getDate()}`, x + (cardWidth / 2), y + 50);
+        // TEXTES
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = isLand ? "center" : "left";
+        let titleX = isLand ? x + cardW/2 : x + 40;
+        
+        ctx.font = `800 ${isLand ? 30 : 36}px "${appState.theme.fontFamily}"`;
+        ctx.fillText(`${daysOfWeek[i]} ${d.getDate()}`, titleX, y + (isLand ? 55 : 60));
 
-            // Contenu
-            if (streamForDay && !streamForDay.isCanceled && streamForDay.status !== "OFF") {
-                ctx.fillStyle = appState.theme.accentColor;
-                ctx.font = `bold 24px ${appState.theme.fontFamily}`;
-                ctx.fillText(`${formatTime(streamForDay.startTime)}`, x + (cardWidth / 2), y + 140);
+        if (stream && stream.status !== "OFF") {
+            ctx.fillStyle = appState.theme.accentColor;
+            ctx.font = `700 ${isLand ? 26 : 28}px "${appState.theme.fontFamily}"`;
+            if (style === "neon") { ctx.shadowBlur = 10; ctx.shadowColor = appState.theme.accentColor; }
+            ctx.fillText(stream.startTime, titleX, y + (isLand ? 130 : 110));
+            ctx.shadowBlur = 0;
 
-                let textStartY = y + 190;
-
-                // Dessin Jaquette
-                if (streamForDay.boxArtUrl && imageCache[streamForDay.boxArtUrl]) {
-                    const img = imageCache[streamForDay.boxArtUrl];
-                    const imgW = 140, imgH = 186; 
-                    const imgX = x + (cardWidth / 2) - (imgW / 2); 
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(imgX, textStartY, imgW, imgH, 8); 
-                    ctx.clip(); 
-                    ctx.drawImage(img, imgX, textStartY, imgW, imgH);
-                    ctx.restore(); 
-                    
-                    textStartY += imgH + 40;
-                }
-
-                ctx.fillStyle = "#ffffff";
-                ctx.font = `bold 20px ${appState.theme.fontFamily}`;
-                let cat = streamForDay.categoryName || "";
-                if (cat.length > 18) cat = cat.substring(0, 15) + "...";
-                ctx.fillText(cat, x + (cardWidth / 2), textStartY);
-
-                ctx.fillStyle = "#aaaaaa";
-                ctx.font = `normal 16px ${appState.theme.fontFamily}`;
-                wrapText(ctx, streamForDay.title, x + (cardWidth / 2), textStartY + 30, cardWidth - 30, 24, "center");
-            } else {
-                ctx.fillStyle = streamForDay && streamForDay.isCanceled ? "#ef4444" : "#71717a";
-                ctx.font = `bold 28px ${appState.theme.fontFamily}`;
-                ctx.fillText(streamForDay && streamForDay.isCanceled ? "ANNULÉ" : "REPOS", x + (cardWidth / 2), y + 350);
+            let imgY = isLand ? y+160 : y+ (cardH-160)/2;
+            let imgX = isLand ? x + (cardW-120)/2 : x + cardW - 140;
+            
+            if (stream.boxArtUrl && imageCache[stream.boxArtUrl]) {
+                ctx.save(); ctx.beginPath(); ctx.roundRect(imgX, imgY, 120, 160, 8); ctx.clip();
+                ctx.drawImage(imageCache[stream.boxArtUrl], imgX, imgY, 120, 160); ctx.restore();
             }
 
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `700 ${isLand ? 20 : 24}px "${appState.theme.fontFamily}"`;
+            let textY = isLand ? imgY + 190 : y + 150;
+            ctx.fillText(stream.categoryName.substring(0, 18), titleX, textY);
+
+            ctx.fillStyle = "#aaaaaa";
+            ctx.font = `400 ${isLand ? 16 : 18}px "${appState.theme.fontFamily}"`;
+            wrapText(ctx, stream.title, titleX, textY+30, isLand ? cardW-20 : cardW-300, 24, isLand?"center":"left");
+
+            if (stream.status === "CANCEL") {
+                ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
+                ctx.fillRect(x, y + cardH/2 - 30, cardW, 60);
+                ctx.fillStyle = "#fff"; ctx.font = `900 30px "${appState.theme.fontFamily}"`;
+                ctx.textAlign = "center"; ctx.fillText("ANNULÉ", x + cardW/2, y + cardH/2 + 10);
+            }
         } else {
-            // --- MODE PORTRAIT ---
-            // En portrait on a de la place en largeur, donc on met le texte à gauche et l'image à droite
-            
-            // Ligne de couleur verticale sur la gauche
-            ctx.fillStyle = appState.theme.accentColor;
-            ctx.beginPath();
-            ctx.roundRect(x, y, 15, cardHeight, [15, 0, 0, 15]);
-            ctx.fill();
-
-            // Date (ex: LUN 28)
-            ctx.fillStyle = "#ffffff";
-            ctx.font = `bold 36px ${appState.theme.fontFamily}`;
-            ctx.fillText(`${dayName} ${currentDate.getDate()}`, x + 40, y + 60);
-
-            if (streamForDay && !streamForDay.isCanceled && streamForDay.status !== "OFF") {
-                // Heure
-                ctx.fillStyle = appState.theme.accentColor;
-                ctx.font = `bold 28px ${appState.theme.fontFamily}`;
-                ctx.fillText(`${formatTime(streamForDay.startTime)}`, x + 40, y + 110);
-                
-                // Titre
-                ctx.fillStyle = "#ffffff";
-                ctx.font = `bold 24px ${appState.theme.fontFamily}`;
-                ctx.fillText(streamForDay.categoryName || "Just Chatting", x + 40, y + 150);
-
-                ctx.fillStyle = "#aaaaaa";
-                ctx.font = `normal 18px ${appState.theme.fontFamily}`;
-                wrapText(ctx, streamForDay.title, x + 40, y + 180, cardWidth - 250, 24, "left");
-
-                // Jaquette (Alignée à droite)
-                if (streamForDay.boxArtUrl && imageCache[streamForDay.boxArtUrl]) {
-                    const img = imageCache[streamForDay.boxArtUrl];
-                    const imgW = 120, imgH = 160; 
-                    const imgX = x + cardWidth - imgW - 30; 
-                    const imgY = y + (cardHeight - imgH) / 2;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(imgX, imgY, imgW, imgH, 8); 
-                    ctx.clip(); 
-                    ctx.drawImage(img, imgX, imgY, imgW, imgH);
-                    ctx.restore(); 
-                }
-            } else {
-                ctx.fillStyle = streamForDay && streamForDay.isCanceled ? "#ef4444" : "#71717a";
-                ctx.font = `bold 36px ${appState.theme.fontFamily}`;
-                ctx.fillText(streamForDay && streamForDay.isCanceled ? "ANNULÉ" : "OFF / REPOS", x + 40, y + 140);
-            }
-        }
-    });
-
-    // SIGNATURE EN BAS
-    if (appState.twitchData.username) {
-        ctx.fillStyle = appState.theme.accentColor;
-        ctx.font = `bold 40px ${appState.theme.fontFamily}`;
-        ctx.textAlign = "center";
-        ctx.fillText(`twitch.tv/${appState.twitchData.username}`, canvas.width / 2, canvas.height - 50);
-    }
-}
-
-
-// ============================================================================
-// 7. ÉDITION MANUELLE INTERACTIVE (Clic sur Canvas)
-// ============================================================================
-
-const modal = document.getElementById('editModal');
-let currentEditDayKey = null; // Stocke la date en cours d'édition (ex: "2026-09-28")
-
-// Détection du clic
-canvas.addEventListener('click', (e) => {
-    // Calcul de la position du clic relative à l'affichage (qui peut être mis à l'échelle via CSS)
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-
-    // Vérifier si le clic est dans une hitbox
-    for (let box of dayHitboxes) {
-        if (clickX >= box.rect.x && clickX <= box.rect.x + box.rect.w &&
-            clickY >= box.rect.y && clickY <= box.rect.y + box.rect.h) {
-            
-            openEditModal(box);
-            break;
+            ctx.fillStyle = "#71717a";
+            ctx.font = `800 36px "${appState.theme.fontFamily}"`;
+            ctx.fillText("OFF", titleX, y + (isLand ? 350 : 130));
         }
     }
-});
-
-function openEditModal(boxData) {
-    currentEditDayKey = boxData.dateKey;
-    document.getElementById('modalDayTitle').innerText = `Modifier le ${boxData.dayName}`;
-    
-    // Remplir les champs avec les données actuelles ou vides
-    const s = boxData.currentData;
-    
-    if (!s || s.status === "OFF") {
-        document.getElementById('modalStatus').value = "OFF";
-        document.getElementById('modalTime').value = "";
-        document.getElementById('modalCategory').value = "";
-        document.getElementById('modalTitle').value = "";
-    } else if (s.isCanceled) {
-        document.getElementById('modalStatus').value = "CANCEL";
-        document.getElementById('modalTime').value = s.startTime || "";
-        document.getElementById('modalCategory').value = s.categoryName || "";
-        document.getElementById('modalTitle').value = s.title || "";
-    } else {
-        document.getElementById('modalStatus').value = "LIVE";
-        document.getElementById('modalTime').value = formatTime(s.startTime);
-        document.getElementById('modalCategory').value = s.categoryName || "";
-        document.getElementById('modalTitle').value = s.title || "";
-    }
-
-    toggleLiveFields();
-    modal.classList.remove('hidden');
 }
 
-// Cacher les champs si on sélectionne OFF ou ANNULÉ
-document.getElementById('modalStatus').addEventListener('change', toggleLiveFields);
-
-function toggleLiveFields() {
-    const status = document.getElementById('modalStatus').value;
-    const fields = document.getElementById('liveFields');
-    if (status === "LIVE") { fields.style.display = "block"; } 
-    else { fields.style.display = "none"; }
+// Utilitaires : Extract Heure, Text Wrap, Dessin Image
+function formatTimeStrict(dStr) {
+    if(!dStr.includes('T')) return dStr;
+    return new Date(dStr).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
-
-document.getElementById('btnCloseModal').addEventListener('click', () => modal.classList.add('hidden'));
-
-// Sauvegarde de l'édition manuelle
-document.getElementById('btnSaveModal').addEventListener('click', () => {
-    const status = document.getElementById('modalStatus').value;
-    
-    // On crée l'objet du stream modifié
-    const manualEntry = {
-        id: "manual_" + currentEditDayKey,
-        manualDateString: currentEditDayKey, // C'est ça qui fait le lien
-        isManual: true,
-        status: status,
-        isCanceled: (status === "CANCEL"),
-        startTime: document.getElementById('modalTime').value,
-        categoryName: document.getElementById('modalCategory').value,
-        title: document.getElementById('modalTitle').value,
-        // On conserve la jaquette si elle existait (évolution future : upload d'image manuelle ici)
-        boxArtUrl: null 
-    };
-
-    // Chercher s'il y a déjà une jaquette stockée par l'API pour ce jour
-    const existing = appState.twitchData.schedule.find(s => 
-        (s.manualDateString === currentEditDayKey) || 
-        (s.startTime && s.startTime.includes(currentEditDayKey))
-    );
-    if (existing && existing.boxArtUrl) manualEntry.boxArtUrl = existing.boxArtUrl;
-
-    // Supprimer l'ancienne entrée de ce jour (API ou manuel)
-    appState.twitchData.schedule = appState.twitchData.schedule.filter(s => {
-        if (s.manualDateString === currentEditDayKey) return false;
-        if (s.startTime && s.startTime.includes(currentEditDayKey)) return false;
-        return true;
-    });
-
-    // Ajouter la nouvelle
-    appState.twitchData.schedule.push(manualEntry);
-
-    saveLocal();
-    modal.classList.add('hidden');
-});
-
-
-// ============================================================================
-// 8. UTILITAIRES ET EXPORT
-// ============================================================================
-
-function wrapText(context, text, x, y, maxWidth, lineHeight, align = "center") {
+function getMondayOfCurrentWeek() {
+    let d = new Date(), day = d.getDay();
+    return new Date(d.setDate(d.getDate() - day + (day===0?-6:1)));
+}
+function wrapText(ctx, text, x, y, maxW, lineH, align) {
     if(!text) return;
-    const words = text.split(' ');
-    let line = '';
-    context.textAlign = align;
-    for(let n = 0; n < words.length; n++) {
-      const testLine = line + words[n] + ' ';
-      const metrics = context.measureText(testLine);
-      if (metrics.width > maxWidth && n > 0) {
-        context.fillText(line.trim(), x, y);
-        line = words[n] + ' ';
-        y += lineHeight;
-      } else { line = testLine; }
+    let words = text.split(' '), line = ''; ctx.textAlign = align;
+    for(let n=0; n<words.length; n++) {
+        let test = line + words[n] + ' ';
+        if (ctx.measureText(test).width > maxW && n>0) {
+            ctx.fillText(line.trim(), x, y); line = words[n] + ' '; y += lineH;
+        } else line = test;
     }
-    context.fillText(line.trim(), x, y);
+    ctx.fillText(line.trim(), x, y);
+}
+function drawImageProp(ctx, img, x, y, w, h) {
+    let iw=img.width, ih=img.height, r=Math.min(w/iw, h/ih), nw=iw*r, nh=ih*r, ar=1;
+    if(nw<w) ar=w/nw; if(Math.abs(ar-1)<1e-14 && nh<h) ar=h/nh; nw*=ar; nh*=ar;
+    ctx.drawImage(img, (iw-iw/(nw/w))/2, (ih-ih/(nh/h))/2, iw/(nw/w), ih/(nh/h), x, y, w, h);
 }
 
-function drawImageProp(ctx, img, x, y, w, h, offsetX=0.5, offsetY=0.5) {
-    let iw = img.width, ih = img.height, r = Math.min(w / iw, h / ih), nw = iw * r, nh = ih * r, ar = 1;
-    if (nw < w) ar = w / nw; if (Math.abs(ar - 1) < 1e-14 && nh < h) ar = h / nh;  
-    nw *= ar; nh *= ar;
-    let cw = iw / (nw / w), ch = ih / (nh / h);
-    let cx = (iw - cw) * offsetX, cy = (ih - ch) * offsetY;
-    if (cx < 0) cx = 0; if (cy < 0) cy = 0; if (cw > iw) cw = iw; if (ch > ih) ch = ih;
-    ctx.drawImage(img, cx, cy, cw, ch,  x, y, w, h);
-}
-
-// Exportation PNG
+// Download
 document.getElementById('btnDownloadImage').addEventListener('click', () => {
-    const imageToDownload = canvas.toDataURL("image/png");
-    const link = document.createElement('a');
-    link.href = imageToDownload;
+    const link = document.createElement('a'); link.href = canvas.toDataURL("image/png");
     link.download = `planning_${appState.layout.format}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    document.body.appendChild(link); link.click(); link.remove();
 });
 
-// INITIALISATION DU DESSIN AU LANCEMENT
 loadBackgroundImageAndRender();
