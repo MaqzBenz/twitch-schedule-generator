@@ -5,32 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream Scheduler Pro</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Police Inter pour un look moderne et clean -->
+    <!-- Police moderne -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         
-        <!-- Barre latérale de contrôle -->
+        <!-- BARRE LATÉRALE DE CONTRÔLE (Gauche) -->
         <aside class="sidebar">
             <header class="sidebar-header">
-                <h1>Stream Scheduler</h1>
+                <h1>Scheduler</h1>
                 <span class="badge">PRO</span>
             </header>
 
-            <!-- SECTION 1 : DONNÉES -->
             <section class="control-group">
-                <h3>Source des données</h3>
+                <h3>1. Source des données</h3>
                 <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch (Optionnel)">
-                <button id="btnFetchTwitch" class="btn btn-primary">Synchroniser avec Twitch</button>
-                <p class="hint">Vous pouvez aussi modifier chaque jour en cliquant dessus sur l'image.</p>
+                <button id="btnFetchTwitch" class="btn btn-primary">Synchroniser Twitch</button>
+                <p class="hint">Astuce : Cliquez sur un jour sur l'image pour modifier le texte manuellement.</p>
             </section>
 
             <hr class="divider">
 
-            <!-- SECTION 2 : FORMAT & ORIENTATION -->
             <section class="control-group">
-                <h3>Format & Orientation</h3>
+                <h3>2. Format</h3>
                 <div class="toggle-group">
                     <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage (16:9)</button>
                     <button id="btnFormatPortrait" class="btn btn-toggle">Portrait (9:16)</button>
@@ -39,20 +37,16 @@
 
             <hr class="divider">
 
-            <!-- SECTION 3 : PERSONNALISATION (COULEURS) -->
             <section class="control-group">
-                <h3>Apparence & Couleurs</h3>
-                
+                <h3>3. Apparence</h3>
                 <div class="color-picker-row">
                     <label>Couleur principale</label>
                     <input type="color" id="colorAccent" value="#9146FF">
                 </div>
-                
                 <div class="color-picker-row">
                     <label>Couleur du texte</label>
                     <input type="color" id="colorText" value="#ffffff">
                 </div>
-
                 <div class="bg-upload-row">
                     <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
                     <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">Fond d'écran</button>
@@ -62,62 +56,62 @@
 
             <hr class="divider">
 
-            <!-- SECTION 4 : PROJET -->
             <section class="control-group">
-                <h3>Sauvegarde du projet</h3>
+                <h3>4. Projet</h3>
                 <div class="split-buttons">
-                    <button id="btnExportConfig" class="btn btn-secondary">💾 Exporter</button>
+                    <button id="btnExportConfig" class="btn btn-secondary">Sauvegarder</button>
                     <input type="file" id="importConfig" accept=".json" style="display: none;">
-                    <button id="btnImportConfig" class="btn btn-secondary" onclick="document.getElementById('importConfig').click()">📂 Importer</button>
+                    <button id="btnImportConfig" class="btn btn-secondary" onclick="document.getElementById('importConfig').click()">Charger</button>
                 </div>
             </section>
-
         </aside>
 
-        <!-- Zone Principale : Aperçu du Canvas -->
+        <!-- ZONE PRINCIPALE (Droite) -->
         <main class="preview-area">
+            
+            <!-- Zone scrollable contenant le Canvas -->
             <div class="canvas-wrapper">
-                <!-- Le Canvas (Cliquable pour édition) -->
                 <canvas id="scheduleCanvas" width="1920" height="1080"></canvas>
-                
-                <!-- Overlay d'édition (Caché par défaut, apparait au clic) -->
-                <div id="editModal" class="modal hidden">
-                    <div class="modal-content">
-                        <h2 id="modalDayTitle">Modifier Lundi</h2>
-                        
-                        <label>Statut</label>
-                        <select id="modalStatus" class="input-text">
-                            <option value="LIVE">Live</option>
-                            <option value="OFF">OFF (Repos)</option>
-                            <option value="CANCEL">Annulé</option>
-                        </select>
-
-                        <div id="liveFields">
-                            <label>Heures (ex: 20:00 - 23:00)</label>
-                            <input type="text" id="modalTime" class="input-text">
-                            
-                            <label>Jeu / Catégorie</label>
-                            <input type="text" id="modalCategory" class="input-text">
-                            
-                            <label>Titre du Stream</label>
-                            <input type="text" id="modalTitle" class="input-text">
-                        </div>
-
-                        <div class="modal-actions">
-                            <button id="btnSaveModal" class="btn btn-primary">Valider</button>
-                            <button id="btnCloseModal" class="btn btn-secondary">Annuler</button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <!-- Barre d'action basse -->
+            <!-- Barre d'action basse (Fixe) -->
             <div class="action-bar">
                 <button id="btnDownloadImage" class="btn btn-success">
                     Télécharger l'image HD
                 </button>
             </div>
+            
         </main>
+    </div>
+
+    <!-- MODAL D'ÉDITION MANUELLE (En dehors du flux normal) -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modalDayTitle">Modifier le jour</h2>
+            
+            <label>Statut</label>
+            <select id="modalStatus" class="input-text select-box">
+                <option value="LIVE">Live</option>
+                <option value="OFF">OFF (Repos)</option>
+                <option value="CANCEL">Annulé</option>
+            </select>
+
+            <div id="liveFields">
+                <label>Heures (ex: 20:00 - 23:00)</label>
+                <input type="text" id="modalTime" class="input-text">
+                
+                <label>Catégorie / Jeu</label>
+                <input type="text" id="modalCategory" class="input-text">
+                
+                <label>Titre du Stream</label>
+                <input type="text" id="modalTitle" class="input-text">
+            </div>
+
+            <div class="modal-actions">
+                <button id="btnSaveModal" class="btn btn-primary">Valider</button>
+                <button id="btnCloseModal" class="btn btn-secondary">Annuler</button>
+            </div>
+        </div>
     </div>
     
     <script src="app.js"></script>
