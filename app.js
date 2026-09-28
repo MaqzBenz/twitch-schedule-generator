@@ -5,52 +5,60 @@ const defaultState = {
     theme: {
         backgroundColor: "#09090b", backgroundImageUrl: null,
         textColor: "#ffffff", accentColor: "#9146FF",
-        fontFamily: "Inter", style: "classic"
+        fontFamily: "Inter", style: "classic" // NOUVEAU: "polaroid" ajouté au HTML
     },
-    layout: { format: "landscape" }, // "landscape" ou "portrait"
-    socials: { twitter: "", tiktok: "" },
-    twitchData: { username: "", schedule: {} }, // Dictionnaire { "2026-09-28": [ streams... ] }
+    layout: { format: "landscape" },
+    socials: [
+        { network: "\uf099", handle: "@Pseudo" }, // f099 = Twitter
+        { network: "\uf167", handle: "Chaîne YT" } // f167 = YouTube
+    ],
+    twitchData: { username: "MonPseudoTwitch", schedule: {} }, 
     twitchAuthToken: null
 };
 
 let appState = defaultState;
-const savedLocalState = localStorage.getItem('schedulerProV3');
+const savedLocalState = localStorage.getItem('schedulerProV4');
 if (savedLocalState) {
     try { appState = { ...defaultState, ...JSON.parse(savedLocalState) }; } catch (e) {}
 }
 
 function saveLocal() {
-    localStorage.setItem('schedulerProV3', JSON.stringify(appState));
-    loadBackgroundImageAndRender();
+    localStorage.setItem('schedulerProV4', JSON.stringify(appState));
+    loadBackgroundImageAndRender(); // Rafraîchit le canvas automatiquement
 }
 
 // ============================================================================
 // 2. INITIALISATION UI & LISTENERS
 // ============================================================================
 window.addEventListener('DOMContentLoaded', () => {
+    // Restaurer les champs
     document.getElementById('twitchUsername').value = appState.twitchData.username || "";
-    document.getElementById('socialTwitter').value = appState.socials.twitter || "";
-    document.getElementById('socialTiktok').value = appState.socials.tiktok || "";
-    
     document.getElementById('colorAccent').value = appState.theme.accentColor;
     document.getElementById('colorText').value = appState.theme.textColor;
     document.getElementById('fontFamily').value = appState.theme.fontFamily;
     document.getElementById('themeStyle').value = appState.theme.style;
     updateFormatButtons(appState.layout.format);
+    
+    // Restaurer les réseaux sociaux dynamiques
+    renderSocialsList();
+    
+    // S'assurer que les polices (FontAwesome + Google) sont chargées avant le 1er rendu
+    document.fonts.ready.then(() => { loadBackgroundImageAndRender(); });
 });
 
-// Écouteurs Apparence
+// -- Écouteurs Apparence (Redessine en direct)
 document.getElementById('colorAccent').addEventListener('input', (e) => { appState.theme.accentColor = e.target.value; saveLocal(); });
 document.getElementById('colorText').addEventListener('input', (e) => { appState.theme.textColor = e.target.value; saveLocal(); });
-document.getElementById('fontFamily').addEventListener('change', (e) => { appState.theme.fontFamily = e.target.value; saveLocal(); });
+document.getElementById('twitchUsername').addEventListener('input', (e) => { appState.twitchData.username = e.target.value; saveLocal(); });
 document.getElementById('themeStyle').addEventListener('change', (e) => { appState.theme.style = e.target.value; saveLocal(); });
 
-// Écouteurs Réseaux & Pseudos
-document.getElementById('twitchUsername').addEventListener('input', (e) => { appState.twitchData.username = e.target.value; saveLocal(); });
-document.getElementById('socialTwitter').addEventListener('input', (e) => { appState.socials.twitter = e.target.value; saveLocal(); });
-document.getElementById('socialTiktok').addEventListener('input', (e) => { appState.socials.tiktok = e.target.value; saveLocal(); });
+// La magie des polices : l'événement "input" s'active dès qu'on défile dans la liste !
+document.getElementById('fontFamily').addEventListener('input', (e) => { 
+    appState.theme.fontFamily = e.target.value; 
+    saveLocal(); // Met à jour le visuel instantanément
+});
 
-// Format
+// -- Format
 document.getElementById('btnFormatLandscape').addEventListener('click', () => { appState.layout.format = "landscape"; updateFormatButtons("landscape"); saveLocal(); });
 document.getElementById('btnFormatPortrait').addEventListener('click', () => { appState.layout.format = "portrait"; updateFormatButtons("portrait"); saveLocal(); });
 function updateFormatButtons(active) {
@@ -58,7 +66,7 @@ function updateFormatButtons(active) {
     document.getElementById('btnFormatPortrait').classList.toggle("active", active === "portrait");
 }
 
-// Fond d'écran
+// -- Fond d'écran
 let bgImageObj = null; const imageCache = {};
 document.getElementById('bgUploader').addEventListener('change', (e) => {
     const reader = new FileReader();
@@ -67,36 +75,88 @@ document.getElementById('bgUploader').addEventListener('change', (e) => {
 });
 document.getElementById('btnClearBg').addEventListener('click', () => { appState.theme.backgroundImageUrl = null; saveLocal(); });
 
-// Projets
-document.getElementById('btnExportConfig').addEventListener('click', () => {
-    const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-    const link = document.createElement('a'); link.href = data; link.download = `planning.json`;
-    document.body.appendChild(link); link.click(); link.remove();
-});
-document.getElementById('importConfig').addEventListener('change', (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => { appState = { ...defaultState, ...JSON.parse(ev.target.result) }; window.location.reload(); };
-    if (e.target.files[0]) reader.readAsText(e.target.files[0]);
-});
 
 // ============================================================================
-// 3. API TWITCH (Correction URL Dynamique)
+// 2.5 GESTION DES RÉSEAUX SOCIAUX DYNAMIQUES
 // ============================================================================
-const TWITCH_CLIENT_ID = 'xc95ll8bm31mma3bhumcw5ny1zlwti'; 
-// On génère dynamiquement l'URL pour éviter l'erreur de redirection
-const REDIRECT_URI = window.location.href.split('#')[0]; 
+// Liste des icônes FontAwesome disponibles (Code Unicode)
+const networkOptions = [
+    { name: "Twitter/X", val: "\uf099" }, { name: "Twitch", val: "\uf1e8" },
+    { name: "YouTube", val: "\uf167" }, { name: "TikTok", val: "\ue07b" },
+    { name: "Instagram", val: "\uf16d" }, { name: "Discord", val: "\uf392" }
+];
+
+function renderSocialsList() {
+    const container = document.getElementById('socialsContainer');
+    container.innerHTML = '';
+    appState.socials.forEach((soc, index) => {
+        let div = document.createElement('div');
+        div.className = "social-row";
+        
+        let selHTML = `<select class="soc-net" data-idx="${index}">`;
+        networkOptions.forEach(opt => {
+            let isSelected = soc.network === opt.val ? "selected" : "";
+            selHTML += `<option value="${opt.val}" ${isSelected}>${opt.val}</option>`;
+        });
+        selHTML += `</select>`;
+        
+        div.innerHTML = `
+            ${selHTML}
+            <input type="text" class="input-text soc-handle" data-idx="${index}" placeholder="Pseudo..." value="${soc.handle}">
+            <button class="btn-remove" data-idx="${index}">✖</button>
+        `;
+        container.appendChild(div);
+    });
+    
+    // Attacher les events
+    document.querySelectorAll('.soc-net').forEach(el => el.addEventListener('change', updateSocialState));
+    document.querySelectorAll('.soc-handle').forEach(el => el.addEventListener('input', updateSocialState));
+    document.querySelectorAll('.btn-remove').forEach(el => el.addEventListener('click', (e) => {
+        appState.socials.splice(e.target.dataset.idx, 1);
+        renderSocialsList();
+        saveLocal();
+    }));
+}
+
+function updateSocialState(e) {
+    const idx = e.target.dataset.idx;
+    if (e.target.classList.contains('soc-net')) appState.socials[idx].network = e.target.value;
+    if (e.target.classList.contains('soc-handle')) appState.socials[idx].handle = e.target.value;
+    saveLocal();
+}
+
+document.getElementById('btnAddSocial').addEventListener('click', () => {
+    if (appState.socials.length >= 4) { alert("Maximum 4 réseaux sociaux !"); return; }
+    appState.socials.push({ network: "\uf1e8", handle: "" });
+    renderSocialsList();
+});
+
+
+// ============================================================================
+// 3. API TWITCH (Correction stricte de l'URL)
+// ============================================================================
+const TWITCH_CLIENT_ID = 'VOTRE_CLIENT_ID_ICI'; 
+
+// L'astuce pour nettoyer l'URL : on enlève tout ce qui suit un '?' ou un '#'
+const REDIRECT_URI = window.location.href.split('#')[0].split('?')[0]; 
 
 document.getElementById('btnFetchTwitch').addEventListener('click', () => {
-    if(TWITCH_CLIENT_ID === 'xc95ll8bm31mma3bhumcw5ny1zlwti') { alert("Veuillez mettre votre Client ID dans app.js !"); return; }
+    if(TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_ICI') { alert("Veuillez mettre votre Client ID dans le code (app.js) !"); return; }
+    
+    // On ne demande PLUS de scope pour éviter l'erreur 400
     const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token`;
+    
+    console.log("Redirection vers Twitch :", authUrl);
     window.location.href = authUrl;
 });
 
+// Interception au retour
 window.addEventListener('DOMContentLoaded', () => {
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
         const token = new URLSearchParams(hash.substring(1)).get('access_token');
         if (token) {
+            // Nettoie l'URL pour la rendre propre visuellement
             window.history.replaceState({}, document.title, window.location.pathname);
             appState.twitchAuthToken = token; 
             fetchTwitchSchedule(token);
@@ -127,18 +187,20 @@ async function fetchTwitchSchedule(token) {
             if (gamesData.data) gamesData.data.forEach(g => { boxArts[g.id] = g.box_art_url.replace('{width}', '188').replace('{height}', '250'); });
         }
 
-        // On reset le schedule pour injecter les données Twitch
+        // On reset le planning
         appState.twitchData.schedule = {};
         streams.forEach(s => {
-            if(s.is_canceled) return; // On ignore les annulés
+            if(s.is_canceled) return; 
             let dateKey = s.start_time.split('T')[0];
             if(!appState.twitchData.schedule[dateKey]) appState.twitchData.schedule[dateKey] = [];
             
-            // Formatage propre de l'heure pour l'input type="time"
-            let timeMatch = new Date(s.start_time).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+            // Format H:M natif (ex: "20:00")
+            let timeStart = new Date(s.start_time).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+            let timeEnd = s.end_time ? new Date(s.end_time).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : "";
             
             appState.twitchData.schedule[dateKey].push({
-                time: timeMatch,
+                timeStart: timeStart,
+                timeEnd: timeEnd,
                 categoryName: s.category ? s.category.name : "Just Chatting",
                 title: s.title,
                 boxArtUrl: (s.category && boxArts[s.category.id]) ? boxArts[s.category.id] : null
@@ -146,13 +208,13 @@ async function fetchTwitchSchedule(token) {
         });
 
         saveLocal();
-        alert("Synchronisation réussie ! Ouvrez l'Éditeur pour vérifier.");
-    } catch (e) { console.error(e); alert("Erreur Twitch. Réessayez."); }
+        alert("Synchronisation Twitch réussie !");
+    } catch (e) { console.error("Erreur Sync:", e); alert("Erreur lors de la synchronisation (Voir Console F12)."); }
 }
 
 
 // ============================================================================
-// 4. ÉDITEUR MANUEL MULTI-STREAMS
+// 4. ÉDITEUR MANUEL DE SEMAINE
 // ============================================================================
 const daysOfWeekFull = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
@@ -192,34 +254,41 @@ document.getElementById('btnOpenEditor').addEventListener('click', () => {
 
 document.getElementById('btnCloseWeek').addEventListener('click', () => document.getElementById('weekEditorModal').classList.add('hidden'));
 
-// Créer une ligne de stream
-window.createStreamRowHTML = function(stream = {time: "20:00", categoryName: "", title: "", boxArtUrl: ""}) {
+// Création d'une ligne d'édition (Avec input type="time" pour le début et la fin)
+window.createStreamRowHTML = function(stream = {timeStart: "20:00", timeEnd: "", categoryName: "", title: "", boxArtUrl: ""}) {
     let div = document.createElement('div');
     div.className = 'stream-row';
     div.innerHTML = `
-        <input type="time" class="input-text time-inp" value="${stream.time}">
+        <div class="time-col">
+            <label>Début</label>
+            <input type="time" class="input-text time-start" value="${stream.timeStart}">
+        </div>
+        <div class="time-col">
+            <label>Fin (Opt.)</label>
+            <input type="time" class="input-text time-end" value="${stream.timeEnd}">
+        </div>
         <input type="text" class="input-text cat-inp" placeholder="Nom du Jeu" value="${stream.categoryName}">
-        <button class="btn-search" onclick="searchGameForEditor(this)">Rechercher Jaquette</button>
+        <button class="btn-search" onclick="searchGameForEditor(this)"><i class="fas fa-search"></i></button>
         <input type="text" class="input-text title-inp" placeholder="Titre du live" value="${stream.title}">
         <input type="hidden" class="boxart-inp" value="${stream.boxArtUrl}">
-        <button class="btn-remove-stream" onclick="this.parentElement.remove()">X</button>
+        <button class="btn-remove-stream" onclick="this.parentElement.remove()">✖</button>
     `;
     return div;
 }
 
 window.addStreamRow = function(btn) {
     const container = btn.parentElement.nextElementSibling;
-    if (container.querySelector('p')) container.innerHTML = ''; // Enlève le texte "OFF"
+    if (container.querySelector('p')) container.innerHTML = ''; 
     container.appendChild(createStreamRowHTML());
 }
 
 window.searchGameForEditor = async function(btn) {
-    if (!appState.twitchAuthToken) { alert("Connectez-vous à Twitch d'abord !"); return; }
+    if (!appState.twitchAuthToken) { alert("Connectez-vous à Twitch (Bouton 1) d'abord !"); return; }
     const row = btn.parentElement;
     const query = row.querySelector('.cat-inp').value;
     if (!query) return;
 
-    btn.innerText = "⏳...";
+    btn.innerHTML = "⏳";
     try {
         const res = await fetch(`https://api.twitch.tv/helix/search/categories?query=${encodeURIComponent(query)}`, {
             headers: { 'Authorization': `Bearer ${appState.twitchAuthToken}`, 'Client-Id': TWITCH_CLIENT_ID }
@@ -227,26 +296,27 @@ window.searchGameForEditor = async function(btn) {
         const data = await res.json();
         if (data.data && data.data.length > 0) {
             row.querySelector('.boxart-inp').value = data.data[0].box_art_url.replace('{width}', '188').replace('{height}', '250');
-            btn.innerText = "✔️ Ok"; btn.style.background = "#10b981";
-        } else { btn.innerText = "❌ Introuvable"; btn.style.background = "#ef4444"; }
-    } catch (e) { btn.innerText = "Erreur"; }
+            btn.innerHTML = "✔️"; btn.style.background = "#10b981";
+        } else { btn.innerHTML = "❌"; btn.style.background = "#ef4444"; }
+    } catch (e) { btn.innerHTML = "⚠️"; }
 };
 
 document.getElementById('btnSaveWeek').addEventListener('click', () => {
-    appState.twitchData.schedule = {}; // On vide
+    appState.twitchData.schedule = {}; 
     document.querySelectorAll('.day-block').forEach(block => {
         let dateKey = block.dataset.date;
         let streams = [];
         block.querySelectorAll('.stream-row').forEach(row => {
             streams.push({
-                time: row.querySelector('.time-inp').value,
+                timeStart: row.querySelector('.time-start').value,
+                timeEnd: row.querySelector('.time-end').value,
                 categoryName: row.querySelector('.cat-inp').value,
                 title: row.querySelector('.title-inp').value,
                 boxArtUrl: row.querySelector('.boxart-inp').value
             });
         });
-        // On trie par heure
-        streams.sort((a,b) => a.time.localeCompare(b.time));
+        // Tri par heure de début
+        streams.sort((a,b) => a.timeStart.localeCompare(b.timeStart));
         if (streams.length > 0) appState.twitchData.schedule[dateKey] = streams;
     });
     saveLocal();
@@ -274,7 +344,6 @@ function preloadImagesAndRender() {
     let toLoad = 0, loaded = 0;
     const check = () => { if (loaded === toLoad) drawWithFonts(); };
     
-    // Parcourt le dictionnaire
     Object.values(appState.twitchData.schedule).forEach(dayStreams => {
         dayStreams.forEach(s => {
             if (s.boxArtUrl && !imageCache[s.boxArtUrl]) {
@@ -287,32 +356,27 @@ function preloadImagesAndRender() {
     if (toLoad === 0) drawWithFonts();
 }
 
-// FIX FONTS : S'assure que la police est chargée avant de dessiner
-function drawWithFonts() {
-    document.fonts.ready.then(() => { renderCanvas(); });
-}
+function drawWithFonts() { document.fonts.ready.then(() => { renderCanvas(); }); }
 
 function renderCanvas() {
     const isLand = (appState.layout.format === "landscape");
     const style = appState.theme.style;
     
-    // Calcul dynamique de la hauteur en mode portrait selon le nombre de lives
-    let totalPortraitHeight = 250; // Header
+    // Calcul hauteur Portrait
+    let totalPortraitHeight = 280; 
     const startOfWeek = getMondayOfCurrentWeek();
     
     if (!isLand) {
         for (let i = 0; i < 7; i++) {
             let d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i);
-            let dateKey = d.toISOString().split('T')[0];
-            let nbStreams = (appState.twitchData.schedule[dateKey] || []).length;
-            let cardH = nbStreams === 0 ? 120 : (nbStreams * 180) + 60; // 180px par stream
-            totalPortraitHeight += cardH + 25; // 25px gap
+            let nbStreams = (appState.twitchData.schedule[d.toISOString().split('T')[0]] || []).length;
+            totalPortraitHeight += (nbStreams === 0 ? 120 : (nbStreams * 180) + 60) + 25;
         }
-        totalPortraitHeight += 150; // Footer sociaux
+        totalPortraitHeight += 180; // Footer
     }
 
     canvas.width = isLand ? 1920 : 1080;
-    canvas.height = isLand ? 1080 : Math.max(1920, totalPortraitHeight); // S'agrandit si besoin
+    canvas.height = isLand ? 1080 : Math.max(1920, totalPortraitHeight); 
 
     // FOND
     ctx.fillStyle = appState.theme.backgroundColor;
@@ -322,7 +386,7 @@ function renderCanvas() {
         ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
-    // TITRE PRINCIPAL
+    // TITRE
     ctx.fillStyle = appState.theme.textColor;
     ctx.font = `900 70px "${appState.theme.fontFamily}"`;
     ctx.textAlign = "center";
@@ -330,11 +394,11 @@ function renderCanvas() {
     ctx.fillText("PLANNING DE LA SEMAINE", canvas.width / 2, 120);
     ctx.shadowBlur = 0; 
 
-    // GESTION DES CARTES
+    // CARTES
     let cardW = isLand ? 240 : 850;
     let gap = isLand ? 20 : 25;
     let startX = isLand ? (canvas.width - (cardW*7 + gap*6))/2 : (canvas.width - cardW)/2;
-    let currentY = 220; // Utilisé pour empiler en Portrait
+    let currentY = 220; 
 
     for (let i = 0; i < 7; i++) {
         let x = isLand ? startX + (i * (cardW + gap)) : startX;
@@ -344,24 +408,33 @@ function renderCanvas() {
         let dateKey = d.toISOString().split('T')[0];
         let dayStreams = appState.twitchData.schedule[dateKey] || [];
         let isOff = dayStreams.length === 0;
-
-        // Calcul Hauteur Carte (Dynamique)
         let cardH = isLand ? 720 : (isOff ? 120 : (dayStreams.length * 180) + 60);
 
-        // DESIGN CARTE
-        if (style === "classic") {
+        // STYLES CARTES
+        if (style === "classic" || style === "polaroid") {
             ctx.save();
-            if (bgImageObj) ctx.filter = "blur(12px)";
-            ctx.fillStyle = "rgba(24, 24, 27, 0.7)";
+            if (bgImageObj && style !== "polaroid") ctx.filter = "blur(12px)";
+            ctx.fillStyle = style === "polaroid" ? "#ffffff" : "rgba(24, 24, 27, 0.7)";
             ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 15); ctx.fill(); ctx.stroke();
+            
+            if (style === "polaroid") {
+                // Style photo blanche
+                ctx.shadowBlur = 15; ctx.shadowColor = "rgba(0,0,0,0.4)";
+                ctx.fillRect(x, y, cardW, cardH);
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 15); ctx.fill(); ctx.stroke();
+            }
             ctx.restore();
             
-            ctx.fillStyle = appState.theme.accentColor;
-            ctx.beginPath(); 
-            if(isLand) ctx.roundRect(x, y, cardW, 80, [15,15,0,0]);
-            else ctx.roundRect(x, y, 15, cardH, [15,0,0,15]);
-            ctx.fill();
+            // Header pour style classique
+            if (style === "classic") {
+                ctx.fillStyle = appState.theme.accentColor;
+                ctx.beginPath(); 
+                if(isLand) ctx.roundRect(x, y, cardW, 80, [15,15,0,0]);
+                else ctx.roundRect(x, y, 15, cardH, [15,0,0,15]);
+                ctx.fill();
+            }
         } 
         else if (style === "minimal") {
             ctx.strokeStyle = appState.theme.accentColor; ctx.lineWidth = 3;
@@ -378,84 +451,95 @@ function renderCanvas() {
             ctx.shadowBlur = 0;
         }
 
-        // TEXTE HEADER JOUR
-        ctx.fillStyle = "#ffffff";
+        // TEXTE DATE
+        ctx.fillStyle = (style === "polaroid") ? "#000000" : "#ffffff";
         ctx.textAlign = isLand ? "center" : "left";
         let titleX = isLand ? x + cardW/2 : x + 40;
-        ctx.font = `800 ${isLand ? 30 : 36}px "${appState.theme.fontFamily}"`;
-        ctx.fillText(`${daysOfWeekShort[i]} ${d.getDate()}`, titleX, y + (isLand ? 55 : 55));
+        ctx.font = `900 ${isLand ? 30 : 36}px "${appState.theme.fontFamily}"`;
+        
+        let dateText = `${daysOfWeekShort[i]} ${d.getDate()}`;
+        if (style === "polaroid") {
+            // Effet marqueur
+            ctx.fillText(dateText, titleX, y + (isLand ? 60 : 55));
+            ctx.fillRect(isLand ? x+20 : x+40, y + (isLand ? 70 : 65), isLand ? cardW-40 : 200, 4);
+        } else {
+            ctx.fillText(dateText, titleX, y + (isLand ? 55 : 55));
+        }
 
-        // CONTENU STREAMS
+        // CONTENU
         if (isOff) {
-            ctx.fillStyle = "#71717a";
+            ctx.fillStyle = (style === "polaroid") ? "#555555" : "#71717a";
             ctx.font = `800 36px "${appState.theme.fontFamily}"`;
             ctx.fillText("OFF", titleX, y + (isLand ? 350 : 100));
         } else {
-            // MULTI STREAMS
             let availableH = isLand ? (cardH - 100) : (cardH - 60); 
             let slotH = availableH / dayStreams.length;
             
             dayStreams.forEach((stream, idx) => {
                 let slotY = isLand ? (y + 100 + (idx * slotH)) : (y + 70 + (idx * 180));
                 
-                // Heure
+                // Formatage Heure : S'il y a une fin, on met "Début - Fin"
+                let displayTime = stream.timeStart;
+                if (stream.timeEnd) displayTime += ` - ${stream.timeEnd}`;
+                
                 ctx.fillStyle = appState.theme.accentColor;
-                ctx.font = `700 ${isLand ? 24 : 28}px "${appState.theme.fontFamily}"`;
-                ctx.fillText(stream.time, titleX, slotY + 20);
+                ctx.font = `700 ${isLand ? 20 : 24}px "${appState.theme.fontFamily}"`;
+                ctx.fillText(displayTime, titleX, slotY + 20);
 
-                // Jaquette
                 let imgW = isLand ? (dayStreams.length > 2 ? 80 : 120) : 100;
                 let imgH = imgW * 1.33;
                 let imgX = isLand ? (x + (cardW - imgW)/2) : (x + cardW - imgW - 30);
                 let imgY = isLand ? (slotY + 40) : (slotY + 10);
                 
                 if (stream.boxArtUrl && imageCache[stream.boxArtUrl]) {
-                    ctx.save(); ctx.beginPath(); ctx.roundRect(imgX, imgY, imgW, imgH, 8); ctx.clip();
+                    ctx.save(); ctx.beginPath(); ctx.roundRect(imgX, imgY, imgW, imgH, 4); ctx.clip();
                     ctx.drawImage(imageCache[stream.boxArtUrl], imgX, imgY, imgW, imgH); ctx.restore();
                 }
 
-                // Titre Jeu & Texte
-                ctx.fillStyle = "#ffffff";
+                ctx.fillStyle = (style === "polaroid") ? "#000000" : "#ffffff";
                 ctx.font = `700 ${isLand ? 18 : 24}px "${appState.theme.fontFamily}"`;
                 let textY = isLand ? (imgY + imgH + 25) : (slotY + 60);
                 ctx.fillText(stream.categoryName.substring(0, 18), titleX, textY);
 
-                ctx.fillStyle = "#aaaaaa";
+                ctx.fillStyle = (style === "polaroid") ? "#444444" : "#aaaaaa";
                 ctx.font = `400 ${isLand ? 14 : 18}px "${appState.theme.fontFamily}"`;
                 wrapText(ctx, stream.title, titleX, textY + 25, isLand ? cardW-20 : cardW-250, 20, isLand?"center":"left");
                 
-                // Petite ligne séparatrice en Paysage s'il y en a plusieurs
                 if (isLand && idx < dayStreams.length - 1) {
-                    ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.beginPath();
+                    ctx.strokeStyle = (style === "polaroid") ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)"; 
+                    ctx.beginPath();
                     ctx.moveTo(x+20, slotY + slotH - 10); ctx.lineTo(x+cardW-20, slotY + slotH - 10); ctx.stroke();
                 }
             });
         }
-        
-        currentY += cardH + gap; // Incrémente pour le mode Portrait
+        currentY += cardH + gap; 
     }
 
-    // SIGNATURE & RESEAUX SOCIAUX EN BAS
-    let footerY = canvas.height - 60;
+    // FOOTER : Pseudos & Réseaux Sociaux (FontAwesome)
+    let footerY = canvas.height - 70;
     
-    // Pseudo principal
     if (appState.twitchData.username) {
         ctx.fillStyle = appState.theme.accentColor;
         ctx.font = `900 35px "${appState.theme.fontFamily}"`;
         ctx.textAlign = "center";
-        ctx.fillText(`twitch.tv/${appState.twitchData.username}`, canvas.width / 2, footerY - 40);
+        ctx.fillText(`twitch.tv/${appState.twitchData.username}`, canvas.width / 2, footerY - 30);
     }
     
-    // Réseaux secondaires
+    // Rendu de FontAwesome dans le Canvas
     ctx.fillStyle = "#ffffff";
-    ctx.font = `400 20px "${appState.theme.fontFamily}"`;
-    let socialsTxt = [];
-    if (appState.socials.twitter) socialsTxt.push(`Twitter: ${appState.socials.twitter}`);
-    if (appState.socials.tiktok) socialsTxt.push(`TikTok/YT: ${appState.socials.tiktok}`);
+    ctx.textAlign = "center";
     
-    if (socialsTxt.length > 0) {
-        ctx.fillText(socialsTxt.join("   |   "), canvas.width / 2, footerY);
-    }
+    // Le secret pour mélanger icônes FA et texte Google Font sur la même ligne :
+    let socialStr = "";
+    appState.socials.forEach((soc, idx) => {
+        if (soc.handle.trim() !== "") {
+            socialStr += `${soc.network} ${soc.handle}    `; 
+        }
+    });
+    
+    // On utilise la police FontAwesome, avec un fallback sur la police choisie pour le texte
+    ctx.font = `400 22px 'FontAwesome', "${appState.theme.fontFamily}"`;
+    ctx.fillText(socialStr, canvas.width / 2, footerY + 20);
 }
 
 // Utilitaires
@@ -464,8 +548,7 @@ function getMondayOfCurrentWeek() {
     return new Date(d.setDate(d.getDate() - day + (day===0?-6:1)));
 }
 function wrapText(ctx, text, x, y, maxW, lineH, align) {
-    if(!text) return;
-    let words = text.split(' '), line = ''; ctx.textAlign = align;
+    if(!text) return; let words = text.split(' '), line = ''; ctx.textAlign = align;
     for(let n=0; n<words.length; n++) {
         let test = line + words[n] + ' ';
         if (ctx.measureText(test).width > maxW && n>0) {
@@ -485,6 +568,3 @@ document.getElementById('btnDownloadImage').addEventListener('click', () => {
     link.download = `planning_${appState.layout.format}.png`;
     document.body.appendChild(link); link.click(); link.remove();
 });
-
-// LANCEMENT INITIAL
-loadBackgroundImageAndRender();
