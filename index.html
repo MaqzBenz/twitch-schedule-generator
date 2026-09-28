@@ -280,6 +280,21 @@
                     <span>Aucun Client ID configuré</span>
                 </div>
 
+                <!-- URL DE REDIRECT — toujours visible -->
+                <div class="redirect-url-box">
+                    <div class="redirect-url-label">
+                        <i class="fas fa-link"></i>
+                        URL à coller dans <strong>OAuth Redirect URLs</strong> sur dev.twitch.tv
+                    </div>
+                    <div class="redirect-url-row">
+                        <code id="currentUrlDisplay" class="redirect-url-value">Chargement...</code>
+                        <button id="btnCopyRedirectUrl" class="btn-copy-url" title="Copier l'URL">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="redirect-url-hint">⚠️ Cette URL doit être enregistrée <em>exactement</em> dans votre app Twitch, sinon vous obtiendrez l'erreur <code>redirect_mismatch</code>.</p>
+                </div>
+
                 <label class="label-small" style="margin-top:14px;">Votre Client ID</label>
                 <div class="settings-input-row">
                     <input
@@ -296,14 +311,14 @@
                 </div>
 
                 <div class="settings-help">
-                    <details>
+                    <details open>
                         <summary><i class="fas fa-circle-question"></i> Comment obtenir mon Client ID ?</summary>
                         <ol>
                             <li>Connectez-vous sur <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener">dev.twitch.tv/console/apps</a></li>
                             <li>Cliquez sur <strong>"Register Your Application"</strong></li>
-                            <li>Dans <em>OAuth Redirect URLs</em>, collez l'URL de votre site GitHub Pages<br><code id="currentUrlDisplay"></code></li>
-                            <li>Catégorie : <strong>Website Integration</strong></li>
-                            <li>Copiez le <strong>Client ID</strong> généré et collez-le ci-dessus</li>
+                            <li>Dans <em>OAuth Redirect URLs</em>, collez l'URL affichée ci-dessus (le bouton <i class="fas fa-copy"></i> la copie)</li>
+                            <li>Catégorie : <strong>Website Integration</strong> &mdash; Type : <strong>Public</strong></li>
+                            <li>Copiez le <strong>Client ID</strong> généré et collez-le dans le champ ci-dessus</li>
                         </ol>
                     </details>
                 </div>

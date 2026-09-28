@@ -1066,11 +1066,7 @@ function updateClientIdStatus() {
 }
 
 document.getElementById('btnOpenSettings').addEventListener('click', () => {
-    // Pré-remplir le champ avec la valeur actuelle
     document.getElementById('settingsClientId').value = TWITCH_CLIENT_ID;
-    // Afficher l'URL courante dans l'aide
-    const urlDisplay = document.getElementById('currentUrlDisplay');
-    if (urlDisplay) urlDisplay.textContent = REDIRECT_URI;
     updateClientIdStatus();
     document.getElementById('settingsModal').classList.remove('hidden');
 });
@@ -1101,9 +1097,29 @@ document.getElementById('btnSaveClientId').addEventListener('click', () => {
     showToast('Client ID enregistré ! Vous pouvez maintenant synchro Twitch.', 'success');
 });
 
-// Initialiser le statut au chargement
+// Initialiser le statut et l'URL de redirect au chargement
 window.addEventListener('DOMContentLoaded', () => {
     updateClientIdStatus();
+
+    // Afficher l'URL de redirect dès le chargement (toujours visible dans la modale)
+    const urlDisplay = document.getElementById('currentUrlDisplay');
+    if (urlDisplay) urlDisplay.textContent = REDIRECT_URI;
+});
+
+// Bouton copier l'URL de redirect
+document.getElementById('btnCopyRedirectUrl').addEventListener('click', () => {
+    navigator.clipboard.writeText(REDIRECT_URI).then(() => {
+        const btn = document.getElementById('btnCopyRedirectUrl');
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<i class="fas fa-copy"></i>';
+        }, 2000);
+        showToast('URL de redirect copiée !', 'success', 2000);
+    }).catch(() => {
+        showToast('Copie impossible, copiez manuellement.', 'warning');
+    });
 });
 
 // ============================================================================
