@@ -15,7 +15,7 @@ Il récupère automatiquement votre agenda depuis Twitch, télécharge les jaque
 ## 🚀 Utilisation (Pour les Streamers)
 
 Une version hébergée de cet outil est disponible ici :
-👉 **[Lien vers votre GitHub Pages]** *(ex: https://votre-pseudo.github.io/twitch-schedule-generator/)*
+👉 **[Lien vers votre GitHub Pages]** *(ex: https://MaqzBenz.github.io/twitch-schedule-generator/)*
 
 1. Cliquez sur **Connexion & Récupérer le planning**.
 2. Autorisez l'application à lire votre agenda Twitch.
@@ -30,7 +30,7 @@ Si vous souhaitez forker ce projet ou l'héberger vous-même, vous devez créer 
 1. Allez sur la [Twitch Developer Console](https://dev.twitch.tv/console/apps).
 2. Cliquez sur **Register Your Application**.
 3. Remplissez le nom.
-4. **Très important :** Dans *OAuth Redirect URLs*, mettez l'URL exacte où votre site sera hébergé (ex: `http://localhost:5500/` pour le développement local, ou `https://votre-pseudo.github.io/votre-depot/` en production).
+4. **Très important :** Dans *OAuth Redirect URLs*, mettez l'URL exacte où votre site sera hébergé (ex: `http://localhost:5500/` pour le développement local, ou `https://MaqzBenz.github.io/votre-depot/` en production).
 5. Catégorie : *Website Integration*.
 6. Type : *Confidential* (le Client Secret généré ne sera pas utilisé ici, seul le Client ID nous intéresse).
 
