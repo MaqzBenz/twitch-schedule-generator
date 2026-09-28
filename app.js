@@ -82,8 +82,8 @@ document.getElementById('importConfig').addEventListener('change', (event) => {
 // --- 3. API TWITCH (Implicit Grant Flow) ---
 
 // ⚠️ À REMPLACER PAR VOS INFORMATIONS ⚠️
-const TWITCH_CLIENT_ID = 'VOTRE_CLIENT_ID_ICI'; 
-const REDIRECT_URI = 'https://VOTRE_PSEUDO.github.io/VOTRE_DEPOT/'; 
+const TWITCH_CLIENT_ID = 'xc95ll8bm31mma3bhumcw5ny1zlwti'; 
+const REDIRECT_URI = 'https://MaqzBenz.github.io/twitch-schedule-generator/'; 
 const SCOPES = 'channel:read:schedule';
 
 document.getElementById('btnFetchTwitch').addEventListener('click', () => {
