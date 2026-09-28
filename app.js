@@ -82,12 +82,12 @@ document.getElementById('importConfig').addEventListener('change', (e) => {
 // ============================================================================
 // 3. API TWITCH (Correction URL Dynamique)
 // ============================================================================
-const TWITCH_CLIENT_ID = 'VOTRE_CLIENT_ID_ICI'; 
+const TWITCH_CLIENT_ID = 'xc95ll8bm31mma3bhumcw5ny1zlwti'; 
 // On génère dynamiquement l'URL pour éviter l'erreur de redirection
 const REDIRECT_URI = window.location.href.split('#')[0]; 
 
 document.getElementById('btnFetchTwitch').addEventListener('click', () => {
-    if(TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_ICI') { alert("Veuillez mettre votre Client ID dans app.js !"); return; }
+    if(TWITCH_CLIENT_ID === 'xc95ll8bm31mma3bhumcw5ny1zlwti') { alert("Veuillez mettre votre Client ID dans app.js !"); return; }
     const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token`;
     window.location.href = authUrl;
 });
