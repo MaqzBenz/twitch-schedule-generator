@@ -13,17 +13,34 @@
         <div class="controls">
             <!-- Zone pour l'API Twitch -->
             <div class="panel">
-                <h2>Import Twitch</h2>
-                <input type="text" id="twitchUsername" placeholder="Pseudo Twitch">
-                <button id="btnFetchTwitch">Récupérer le planning</button>
+                <h2>1. Import Twitch</h2>
+                <input type="text" id="twitchUsername" placeholder="Pseudo Twitch (Optionnel)">
+                <button id="btnFetchTwitch">Connexion & Récupérer le planning</button>
             </div>
 
-            <!-- Zone de sauvegarde/chargement JSON -->
+            <!-- Zone pour le Design / Fond -->
             <div class="panel">
-                <h2>Configuration</h2>
-                <button id="btnExportConfig">Sauvegarder le design (.json)</button>
+                <h2>2. Design</h2>
+                <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                <button id="btnUploadBg" onclick="document.getElementById('bgUploader').click()">Changer le fond d'écran</button>
+                <button id="btnClearBg" class="btn-danger">Enlever le fond</button>
+            </div>
+
+            <!-- Zone de sauvegarde JSON -->
+            <div class="panel">
+                <h2>3. Configuration</h2>
+                <button id="btnExportConfig">Sauvegarder (.json)</button>
                 <input type="file" id="importConfig" accept=".json" style="display: none;">
-                <button id="btnImportConfig" onclick="document.getElementById('importConfig').click()">Charger un design (.json)</button>
+                <button id="btnImportConfig" onclick="document.getElementById('importConfig').click()">Charger (.json)</button>
+            </div>
+
+            <!-- Zone pour l'Export de l'image -->
+            <div class="panel highlight-panel">
+                <h2>4. Exportation</h2>
+                <button id="btnDownloadImage" class="btn-success">
+                    📥 Télécharger le Planning (PNG)
+                </button>
+                <small class="helper-text">Format 1920x1080px optimisé Twitter/Discord</small>
             </div>
         </div>
 
