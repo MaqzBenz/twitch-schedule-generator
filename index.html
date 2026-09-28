@@ -3,51 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur de Planning Twitch</title>
+    <title>Stream Scheduler Pro</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Police Inter pour un look moderne et clean -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Générateur de Planning Twitch</h1>
+    <div class="app-container">
         
-        <div class="controls">
-            <!-- Zone pour l'API Twitch -->
-            <div class="panel">
-                <h2>1. Import Twitch</h2>
-                <input type="text" id="twitchUsername" placeholder="Pseudo Twitch (Optionnel)">
-                <button id="btnFetchTwitch">Connexion & Récupérer le planning</button>
+        <!-- Barre latérale de contrôle -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <h1>Stream Scheduler</h1>
+                <span class="badge">PRO</span>
+            </header>
+
+            <!-- SECTION 1 : DONNÉES -->
+            <section class="control-group">
+                <h3>Source des données</h3>
+                <input type="text" id="twitchUsername" class="input-text" placeholder="Pseudo Twitch (Optionnel)">
+                <button id="btnFetchTwitch" class="btn btn-primary">Synchroniser avec Twitch</button>
+                <p class="hint">Vous pouvez aussi modifier chaque jour en cliquant dessus sur l'image.</p>
+            </section>
+
+            <hr class="divider">
+
+            <!-- SECTION 2 : FORMAT & ORIENTATION -->
+            <section class="control-group">
+                <h3>Format & Orientation</h3>
+                <div class="toggle-group">
+                    <button id="btnFormatLandscape" class="btn btn-toggle active">Paysage (16:9)</button>
+                    <button id="btnFormatPortrait" class="btn btn-toggle">Portrait (9:16)</button>
+                </div>
+            </section>
+
+            <hr class="divider">
+
+            <!-- SECTION 3 : PERSONNALISATION (COULEURS) -->
+            <section class="control-group">
+                <h3>Apparence & Couleurs</h3>
+                
+                <div class="color-picker-row">
+                    <label>Couleur principale</label>
+                    <input type="color" id="colorAccent" value="#9146FF">
+                </div>
+                
+                <div class="color-picker-row">
+                    <label>Couleur du texte</label>
+                    <input type="color" id="colorText" value="#ffffff">
+                </div>
+
+                <div class="bg-upload-row">
+                    <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                    <button id="btnUploadBg" class="btn btn-secondary" onclick="document.getElementById('bgUploader').click()">Fond d'écran</button>
+                    <button id="btnClearBg" class="btn btn-danger-icon" title="Enlever le fond">✖</button>
+                </div>
+            </section>
+
+            <hr class="divider">
+
+            <!-- SECTION 4 : PROJET -->
+            <section class="control-group">
+                <h3>Sauvegarde du projet</h3>
+                <div class="split-buttons">
+                    <button id="btnExportConfig" class="btn btn-secondary">💾 Exporter</button>
+                    <input type="file" id="importConfig" accept=".json" style="display: none;">
+                    <button id="btnImportConfig" class="btn btn-secondary" onclick="document.getElementById('importConfig').click()">📂 Importer</button>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- Zone Principale : Aperçu du Canvas -->
+        <main class="preview-area">
+            <div class="canvas-wrapper">
+                <!-- Le Canvas (Cliquable pour édition) -->
+                <canvas id="scheduleCanvas" width="1920" height="1080"></canvas>
+                
+                <!-- Overlay d'édition (Caché par défaut, apparait au clic) -->
+                <div id="editModal" class="modal hidden">
+                    <div class="modal-content">
+                        <h2 id="modalDayTitle">Modifier Lundi</h2>
+                        
+                        <label>Statut</label>
+                        <select id="modalStatus" class="input-text">
+                            <option value="LIVE">Live</option>
+                            <option value="OFF">OFF (Repos)</option>
+                            <option value="CANCEL">Annulé</option>
+                        </select>
+
+                        <div id="liveFields">
+                            <label>Heures (ex: 20:00 - 23:00)</label>
+                            <input type="text" id="modalTime" class="input-text">
+                            
+                            <label>Jeu / Catégorie</label>
+                            <input type="text" id="modalCategory" class="input-text">
+                            
+                            <label>Titre du Stream</label>
+                            <input type="text" id="modalTitle" class="input-text">
+                        </div>
+
+                        <div class="modal-actions">
+                            <button id="btnSaveModal" class="btn btn-primary">Valider</button>
+                            <button id="btnCloseModal" class="btn btn-secondary">Annuler</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Zone pour le Design / Fond -->
-            <div class="panel">
-                <h2>2. Design</h2>
-                <input type="file" id="bgUploader" accept="image/png, image/jpeg, image/webp" style="display: none;">
-                <button id="btnUploadBg" onclick="document.getElementById('bgUploader').click()">Changer le fond d'écran</button>
-                <button id="btnClearBg" class="btn-danger">Enlever le fond</button>
-            </div>
-
-            <!-- Zone de sauvegarde JSON -->
-            <div class="panel">
-                <h2>3. Configuration</h2>
-                <button id="btnExportConfig">Sauvegarder (.json)</button>
-                <input type="file" id="importConfig" accept=".json" style="display: none;">
-                <button id="btnImportConfig" onclick="document.getElementById('importConfig').click()">Charger (.json)</button>
-            </div>
-
-            <!-- Zone pour l'Export de l'image -->
-            <div class="panel highlight-panel">
-                <h2>4. Exportation</h2>
-                <button id="btnDownloadImage" class="btn-success">
-                    📥 Télécharger le Planning (PNG)
+            <!-- Barre d'action basse -->
+            <div class="action-bar">
+                <button id="btnDownloadImage" class="btn btn-success">
+                    Télécharger l'image HD
                 </button>
-                <small class="helper-text">Format 1920x1080px optimisé Twitter/Discord</small>
             </div>
-        </div>
-
-        <!-- Zone du Canvas (là où l'image sera dessinée) -->
-        <div class="canvas-container">
-            <canvas id="scheduleCanvas" width="1920" height="1080"></canvas>
-        </div>
+        </main>
     </div>
     
     <script src="app.js"></script>

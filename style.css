@@ -1,101 +1,272 @@
+:root {
+    --bg-dark: #09090b;       /* Noir profond pour l'app */
+    --bg-panel: #18181b;      /* Gris très sombre pour les panneaux */
+    --bg-input: #27272a;      /* Fond des champs texte */
+    --border: #3f3f46;        /* Bordures subtiles */
+    --text-main: #f4f4f5;     /* Blanc cassé pour lisibilité */
+    --text-muted: #a1a1aa;    /* Gris clair pour textes secondaires */
+    --primary: #9146FF;       /* Violet Twitch de base (modifiable) */
+    --primary-hover: #a970ff;
+    --success: #10b981;       /* Vert émeraude */
+    --radius: 8px;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #121216; /* Fond très sombre */
-    color: #fff;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
     margin: 0;
-    padding: 20px;
+    height: 100vh;
+    overflow: hidden; /* Empêche le scroll global, on scrolle dans les zones */
 }
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-}
-h1 {
-    text-align: center;
-    color: #9146FF; /* Violet Twitch */
-    margin-bottom: 30px;
-}
-h2 {
-    font-size: 18px;
-    margin-top: 0;
-    color: #e0e0e0;
-}
-.controls {
+
+/* Layout Principal : Sidebar + Main */
+.app-container {
     display: flex;
-    flex-wrap: wrap; /* S'adapte sur les petits écrans */
-    gap: 15px;
+    height: 100vh;
+}
+
+/* --- SIDEBAR (Contrôles à gauche) --- */
+.sidebar {
+    width: 320px;
+    min-width: 320px;
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     margin-bottom: 30px;
 }
-.panel {
-    background: #1f1f23; /* Gris Twitch UI */
-    padding: 20px;
-    border-radius: 8px;
-    flex: 1;
-    min-width: 250px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+
+.sidebar-header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.5px;
 }
-.highlight-panel {
-    border: 2px solid #9146FF;
-    background: #18181b;
+
+.badge {
+    background: var(--primary);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background-color: var(--border);
+    margin: 20px 0;
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+/* --- ÉLÉMENTS DE FORMULAIRE --- */
+.input-text {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 10px;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    transition: border 0.2s;
+}
+.input-text:focus {
+    outline: none;
+    border-color: var(--primary);
 }
 
 /* Boutons */
-button {
-    background: #9146FF;
-    color: white;
-    border: none;
-    padding: 12px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
+.btn {
     width: 100%;
-    margin-bottom: 10px;
-    transition: background 0.2s;
+    padding: 10px;
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
 }
-button:hover {
-    background: #a970ff;
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
 }
-.btn-danger {
-    background: #e74c3c;
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-secondary {
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border);
 }
-.btn-danger:hover {
-    background: #c0392b;
-}
+.btn-secondary:hover { background-color: #3f3f46; }
+
 .btn-success {
-    background: #2ea44f;
+    background-color: var(--success);
+    color: white;
     font-size: 16px;
     padding: 15px;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
-.btn-success:hover {
-    background: #22863a;
+.btn-success:hover { background-color: #059669; transform: translateY(-2px); }
+
+/* Toggle Format (Paysage/Portrait) */
+.toggle-group {
+    display: flex;
+    background: var(--bg-input);
+    border-radius: var(--radius);
+    padding: 4px;
+}
+.btn-toggle {
+    flex: 1;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 8px;
+    font-size: 13px;
+}
+.btn-toggle.active {
+    background: var(--bg-panel);
+    color: var(--text-main);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* Inputs */
-input[type="text"] {
-    width: calc(100% - 24px); /* - padding et border */
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 6px;
-    border: 1px solid #444;
-    background: #0e0e10;
+/* Lignes de contrôles spécifiques */
+.split-buttons {
+    display: flex;
+    gap: 10px;
+}
+.color-picker-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.color-picker-row label {
+    font-size: 14px;
+}
+input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 4px; }
+
+.bg-upload-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+.btn-danger-icon {
+    background: #ef4444;
     color: white;
-}
-.helper-text {
-    display: block;
-    margin-top: 5px;
-    color: #aaa;
-    text-align: center;
+    width: 40px;
+    flex-shrink: 0;
 }
 
-/* Canvas */
-.canvas-container {
-    background: #000;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    max-width: 100%;
+/* --- ZONE PRINCIPALE (CANVAS) --- */
+.preview-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-dark);
+    position: relative;
 }
+
+.canvas-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    overflow: auto; /* Permet de scroller si le canvas est plus grand que l'écran */
+}
+
+/* Ombre portée élégante autour du canvas */
 canvas {
-    width: 100%;
-    height: auto;
-    display: block; /* Enlève la marge sous le canvas */
+    background-color: #000;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Garde le ratio intact */
+    cursor: pointer; /* Indique qu'on peut cliquer pour modifier */
+    transition: all 0.3s ease;
+}
+
+.action-bar {
+    padding: 20px 40px;
+    background-color: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* --- MODAL D'ÉDITION MANUELLE --- */
+.modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-content {
+    background: var(--bg-panel);
+    padding: 30px;
+    border-radius: 12px;
+    width: 400px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--primary);
+}
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
 }
