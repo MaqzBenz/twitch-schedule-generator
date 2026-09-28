@@ -1,1 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Planning Twitch</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Générateur de Planning Twitch</h1>
+        
+        <div class="controls">
+            <!-- Zone pour l'API Twitch -->
+            <div class="panel">
+                <h2>Import Twitch</h2>
+                <input type="text" id="twitchUsername" placeholder="Pseudo Twitch">
+                <button id="btnFetchTwitch">Récupérer le planning</button>
+            </div>
 
+            <!-- Zone de sauvegarde/chargement JSON -->
+            <div class="panel">
+                <h2>Configuration</h2>
+                <button id="btnExportConfig">Sauvegarder le design (.json)</button>
+                <input type="file" id="importConfig" accept=".json" style="display: none;">
+                <button id="btnImportConfig" onclick="document.getElementById('importConfig').click()">Charger un design (.json)</button>
+            </div>
+        </div>
+
+        <!-- Zone du Canvas (là où l'image sera dessinée) -->
+        <div class="canvas-container">
+            <canvas id="scheduleCanvas" width="1920" height="1080"></canvas>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
