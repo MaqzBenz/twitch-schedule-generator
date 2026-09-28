@@ -1,42 +1,34 @@
-# 📅 Générateur de Planning Twitch
+# 📅 Stream Scheduler Pro (V4)
 
-Un outil web open-source fonctionnant entièrement côté client (Frontend-only) pour générer des images de planning de stream prêtes à être partagées sur les réseaux sociaux (Twitter, Discord, Instagram).
+Un outil web open-source et "serverless" (fonctionnant à 100% dans le navigateur) pour générer des images de planning de stream prêtes à être partagées sur les réseaux sociaux.
 
-Il récupère automatiquement votre agenda depuis Twitch, télécharge les jaquettes officielles des jeux, et vous permet de personnaliser le design avant d'exporter le tout en PNG haute définition.
+Pensé pour les créateurs de contenu, cet outil allie la simplicité d'un générateur automatique à la flexibilité d'un logiciel de design.
 
-## ✨ Fonctionnalités
+## ✨ Fonctionnalités Principales
 
-- **🔌 Intégration Twitch API** : Récupère automatiquement les dates, heures, titres et catégories de vos streams prévus.
-- **🖼️ Jaquettes Officielles** : Affiche automatiquement les pochettes (Box Art) des jeux prévus via l'API Twitch/IGDB.
-- **🎨 Personnalisation** : Uploadez votre propre image de fond. Les cartes des jours utilisent un effet de *Glassmorphism* (verre dépoli) pour s'adapter à votre arrière-plan.
-- **💾 Sauvegarde Locale & JSON** : Votre configuration (fond, préférences) est sauvegardée automatiquement dans votre navigateur. Vous pouvez aussi l'exporter en fichier `.json` pour la transférer.
-- **🔒 Respect de la Vie Privée (Serverless)** : L'application fonctionne 100% dans votre navigateur (HTML/JS/Canvas). Aucune donnée n'est envoyée vers un serveur tiers.
+- **🔌 Double Acquisition de Données** :
+  - **Auto (Twitch API)** : Récupère automatiquement les streams prévus, les horaires et télécharge les jaquettes officielles des jeux.
+  - **Manuel (Multi-Lives)** : Un éditeur intégré pour créer des jours complexes (plusieurs streams par jour, horaires de début et fin optionnels).
+- **🎨 4 Styles Visuels Uniques** :
+  - Classique (Cartes avec effet verre dépoli / Glassmorphism)
+  - Minimaliste (Lignes pures et néons)
+  - Néon (Effets de lueur "Gaming Glow")
+  - Polaroid (Cartes blanches avec ombres portées)
+- **📱 Multi-Format** : Bascule instantanée entre le mode Paysage (16:9, idéal pour Twitter/Discord) et le mode Portrait (Vertical, adapté aux stories Insta/TikTok).
+- **🌐 Intégration FontAwesome & Google Fonts** : Prévisualisation en direct de polices pro et gestion dynamique jusqu'à 4 réseaux sociaux avec icônes officielles.
+- **💾 Persistance des Données** : Sauvegarde automatique locale (Local Storage) et export complet du projet en `.json`.
 
-## 🚀 Utilisation (Pour les Streamers)
+## 🚀 Héberger son propre générateur
 
-Une version hébergée de cet outil est disponible ici :
-👉 **[Lien vers votre GitHub Pages]** *(ex: https://MaqzBenz.github.io/twitch-schedule-generator/)*
+Ce projet est conçu pour être hébergé **gratuitement sur GitHub Pages**. Aucune base de données ni serveur Node.js n'est requis.
 
-1. Cliquez sur **Connexion & Récupérer le planning**.
-2. Autorisez l'application à lire votre agenda Twitch.
-3. Personnalisez votre fond d'écran si vous le souhaitez.
-4. Cliquez sur **Télécharger le Planning (PNG)**.
-
-## 🛠️ Configuration (Pour les Développeurs)
-
-Si vous souhaitez forker ce projet ou l'héberger vous-même, vous devez créer votre propre application Twitch pour obtenir un **Client ID**.
-
-### 1. Créer une application sur Twitch
-1. Allez sur la [Twitch Developer Console](https://dev.twitch.tv/console/apps).
+### 1. Obtenir un Client ID Twitch
+1. Connectez-vous à la [Twitch Developer Console](https://dev.twitch.tv/console/apps).
 2. Cliquez sur **Register Your Application**.
-3. Remplissez le nom.
-4. **Très important :** Dans *OAuth Redirect URLs*, mettez l'URL exacte où votre site sera hébergé (ex: `http://localhost:5500/` pour le développement local, ou `https://MaqzBenz.github.io/votre-depot/` en production).
-5. Catégorie : *Website Integration*.
-6. Type : *Confidential* (le Client Secret généré ne sera pas utilisé ici, seul le Client ID nous intéresse).
+3. **Important** : Dans *OAuth Redirect URLs*, mettez l'URL exacte où votre site sera hébergé (ex: `https://votre-pseudo.github.io/votre-depot/`).
+4. Catégorie : *Website Integration*. Type : *Confidential*.
 
-### 2. Mettre à jour le code
-Ouvrez le fichier `app.js` et modifiez ces constantes (ligne 82) :
-
+### 2. Configurer le code
+Ouvrez le fichier `app.js` et modifiez la constante à la ligne 153 :
 ```javascript
-const TWITCH_CLIENT_ID = 'VOTRE_CLIENT_ID_ICI';
-const REDIRECT_URI = 'VOTRE_URL_DE_REDIRECTION_ICI';
+const TWITCH_CLIENT_ID = 'VOTRE_CLIENT_ID_TWITCH_ICI';
