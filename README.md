@@ -143,17 +143,6 @@ Grâce à la modale de paramètres intégrée, **aucune modification de code sou
 
 ---
 
-## 🧩 Installer l'Extension Twitch (Panneau de chaîne)
-
-L'archive `stream-scheduler-pro-extension.zip` contient tous les éléments nécessaires pour intégrer votre planning directement sous votre lecteur Twitch :
-
-1. Décompressez `stream-scheduler-pro-extension.zip` ou consultez le guide dédié inclus à l'intérieur (`README.md`).
-2. Créez une extension de type **Panel** sur la [Twitch Developer Console](https://dev.twitch.tv/console/extensions).
-3. Hébergez les fichiers (`panel.html`, `config.html`, etc.) sur GitHub Pages ou un hébergeur HTTPS.
-4. Depuis votre tableau de bord de créateur Twitch, activez le panneau et collez votre export JSON généré par *Stream Scheduler Pro* dans l'onglet de configuration.
-
----
-
 ## 📁 Structure du Projet
 
 ```
@@ -161,8 +150,6 @@ twitch-schedule-generator/
 ├── index.html                           # Interface utilisateur principale et canvas HD
 ├── style.css                            # Feuilles de styles UI (Dark mode, glassmorphism, flexbox)
 ├── app.js                               # Moteur complet : gestion d'état, API Twitch, rendu Canvas 2D
-├── stream-scheduler-pro-extension.zip   # Extension Twitch officielle prête à être déployée
-├── info.md                              # Spécifications techniques détaillées et architecture
 └── README.md                            # Documentation générale du projet
 ```
 
